@@ -3,7 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>일상을 기록하는 스마트 플래너</title>
+    
+    <title>mune planner</title>
+    <meta name="apple-mobile-web-app-title" content="mune planner">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -12,17 +17,20 @@
         .card { background: #ffffff; border: 1px solid #e5e7eb; padding: 1.5rem; border-radius: 16px; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05); height: 100%; }
         .btn-tool { font-size: 0.7rem; font-weight: 700; border: 1px solid #000000; padding: 5px 10px; border-radius: 6px; cursor: pointer; transition: 0.2s; background: white; }
         .item-row { border-bottom: 1px solid #f3f4f6; padding: 0.85rem 0; display: flex; align-items: center; gap: 0.75rem; }
+        .recurring-active { color: #6366f1 !important; font-weight: 900; }
+        .recurring-inactive { color: #d1d5db !important; }
         textarea, input[type="date"] { border: 1px solid #e5e7eb !important; border-radius: 10px !important; padding: 10px !important; width: 100%; font-size: 16px !important; color: #000; }
         #multi-paste-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; align-items: center; justify-content: center; padding: 1rem; }
         .modal-content { background: white; padding: 1.5rem; border-radius: 20px; width: 100%; max-width: 400px; max-height: 85vh; overflow-y: auto; }
+        #image-gallery img { width: 80px; height: 80px; object-cover: cover; border-radius: 12px; border: 1px solid #eee; flex-shrink: 0; cursor: pointer; }
     </style>
 </head>
 <body class="p-4 md:p-12">
     <div class="max-w-7xl mx-auto space-y-6 md:space-y-10">
         <header class="flex flex-col gap-4 border-b-2 border-black pb-6">
             <div>
-                <h1 class="text-2xl md:text-4xl font-extrabold tracking-tight">일상을 기록하는 스마트 플래너</h1>
-                <p class="text-sm md:text-lg font-medium text-gray-400 mt-1">mune 디렉터님의 소중한 기록 보관소</p>
+                <h1 class="text-2xl md:text-4xl font-extrabold tracking-tight">mune planner</h1>
+                <p class="text-sm md:text-lg font-medium text-gray-400 mt-1">디렉터님의 창의적인 일상을 위한 아카이브</p>
             </div>
             <div class="flex flex-wrap gap-2">
                 <button onclick="copySection('routine')" class="btn-tool">루틴 복사</button>
@@ -34,61 +42,123 @@
                 <input type="date" id="date-picker" onchange="changeDate()" class="font-bold outline-none flex-1">
             </div>
         </header>
+
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
-            <section class="card"><div class="flex justify-between items-center mb-4"><h2 class="text-xl font-bold">루틴 관리</h2><button onclick="addNewItem('routine')" class="text-xs font-bold border-b border-black">+ 추가</button></div><div id="routine-list"></div></section>
-            <section class="card"><div class="flex justify-between items-center mb-4"><h2 class="text-xl font-bold">건강 관리</h2><button onclick="addNewItem('habit')" class="text-xs font-bold border-b border-black">+ 추가</button></div><div id="habit-list" class="mb-6"></div><div class="pt-4 border-t border-gray-100"><h3 class="text-[10px] font-bold text-gray-400 mb-2 uppercase">식단 기록</h3><textarea id="meal-log" onblur="saveCurrentData()" class="h-24 resize-none text-sm text-black" placeholder="식단을 기록하세요..."></textarea></div></section>
-            <section class="card"><h2 class="text-xl font-bold mb-4">창작 메모</h2><div class="bg-gray-50 p-4 mb-4 rounded-xl border border-gray-100 flex justify-between items-center"><div class="text-[10px] font-bold text-gray-500 uppercase">GCP 크레딧 만료일: 2026.03.10</div><div id="d-day-val" class="text-2xl font-black text-black">D-?</div></div><textarea id="idea-note" onblur="saveGlobal('idea-note')" class="h-[300px] leading-relaxed text-sm text-black" placeholder="아이디어를 기록하세요..."></textarea></section>
+            <section class="card">
+                <div class="flex justify-between items-center mb-4"><h2 class="text-xl font-bold">루틴 관리</h2><button onclick="addNewItem('routine')" class="text-xs font-bold border-b border-black">+ 추가</button></div>
+                <div id="routine-list"></div>
+            </section>
+            
+            <section class="card">
+                <div class="flex justify-between items-center mb-4"><h2 class="text-xl font-bold">건강 관리</h2><button onclick="addNewItem('habit')" class="text-xs font-bold border-b border-black">+ 추가</button></div>
+                <div id="habit-list" class="mb-6"></div>
+                <div class="pt-4 border-t border-gray-100">
+                    <h3 class="text-[10px] font-bold text-gray-400 mb-2 uppercase">식단 기록</h3>
+                    <textarea id="meal-log" onblur="saveCurrentData()" class="h-24 resize-none text-sm text-black" placeholder="오늘의 식단을 기록하세요..."></textarea>
+                </div>
+            </section>
+
+            <section class="card">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-bold">창작 & 이미지</h2>
+                    <button onclick="document.getElementById('char-upload').click()" class="text-xs font-bold border-b border-black">+ 캐릭터 추가</button>
+                    <input type="file" id="char-upload" style="display:none" onchange="previewImage(this)" accept="image/*">
+                </div>
+                
+                <div id="image-gallery" class="flex gap-2 overflow-x-auto pb-4 mb-4 min-h-[90px] border-b border-gray-50"></div>
+
+                <div class="bg-gray-50 p-4 mb-4 rounded-xl border border-gray-100 flex justify-between items-center">
+                    <div class="text-[10px] font-bold text-gray-500 uppercase">GCP 만료: 2026.03.10</div>
+                    <div id="d-day-val" class="text-2xl font-black text-black">D-?</div>
+                </div>
+                <textarea id="idea-note" onblur="saveGlobal('idea-note')" class="h-[150px] leading-relaxed text-sm text-black" placeholder="루미, 얼터, 모찌 설정을 기록하세요..."></textarea>
+            </section>
         </div>
     </div>
-    <div id="multi-paste-modal"><div class="modal-content"><h3 class="text-xl font-bold mb-2">다중 붙여넣기</h3><div id="date-list" class="space-y-1 mb-6"></div><div class="flex gap-2"><button onclick="applyMultiPaste()" class="flex-1 bg-black text-white py-4 rounded-xl font-bold">적용하기</button><button onclick="closeMultiPaste()" class="flex-1 bg-gray-100 py-4 rounded-xl font-bold">취소</button></div></div></div>
+
+    <div id="multi-paste-modal">
+        <div class="modal-content"><h3 class="text-xl font-bold mb-4">다중 붙여넣기</h3><div id="date-list" class="space-y-1 mb-6"></div><div class="flex gap-2"><button onclick="applyMultiPaste()" class="flex-1 bg-black text-white py-4 rounded-xl font-bold">적용</button><button onclick="closeMultiPaste()" class="flex-1 bg-gray-100 py-4 rounded-xl font-bold">취소</button></div></div>
+    </div>
+
     <script>
         let selectedDate = new Date().toISOString().split('T')[0];
         window.onload = () => { document.getElementById('date-picker').value = selectedDate; loadAllData(); };
         function changeDate() { selectedDate = document.getElementById('date-picker').value; loadAllData(); }
+
+        function previewImage(input) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const imgHtml = `<img src="${e.target.result}" onclick="deleteImage(this)">`;
+                    document.getElementById('image-gallery').insertAdjacentHTML('afterbegin', imgHtml);
+                    const imgs = JSON.parse(localStorage.getItem('char-images') || '[]');
+                    imgs.unshift(e.target.result);
+                    localStorage.setItem('char-images', JSON.stringify(imgs.slice(0, 10)));
+                };
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        function deleteImage(img) { if(confirm("이미지를 삭제할까요?")) { img.remove(); saveImagesToStorage(); } }
+        function saveImagesToStorage() {
+            const imgs = Array.from(document.querySelectorAll('#image-gallery img')).map(img => img.src);
+            localStorage.setItem('char-images', JSON.stringify(imgs));
+        }
+
         function exportData() {
             const data = JSON.stringify(localStorage, null, 2);
             const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([data], {type: "application/json"}));
             a.download = `mune_planner_backup.json`; a.click();
         }
+
         function importData(input) {
             const file = input.files[0]; const reader = new FileReader();
             reader.onload = function(e) {
                 try {
                     const data = JSON.parse(e.target.result);
                     Object.keys(data).forEach(key => localStorage.setItem(key, data[key]));
-                    alert("기록을 성공적으로 불러왔습니다!"); location.reload();
+                    alert("성공적으로 불러왔습니다!"); location.reload();
                 } catch (err) { alert("파일 오류가 발생했습니다."); }
             };
             reader.readAsText(file);
         }
+
         function loadAllData() {
             ['idea-note'].forEach(id => { const val = localStorage.getItem(id); if(val) document.getElementById(id).value = val; });
+            const imgs = JSON.parse(localStorage.getItem('char-images') || '[]');
+            document.getElementById('image-gallery').innerHTML = imgs.map(src => `<img src="${src}" onclick="deleteImage(this)">`).join('');
             renderList('routine-list', JSON.parse(localStorage.getItem(`${selectedDate}-routines`) || '[]'), 'routine');
             renderList('habit-list', JSON.parse(localStorage.getItem(`${selectedDate}-habits`) || '[]'), 'habit');
             document.getElementById('meal-log').value = localStorage.getItem(`${selectedDate}-meal`) || "";
             const diff = Math.ceil((new Date('2026-03-10') - new Date()) / (1000 * 60 * 60 * 24));
             document.getElementById('d-day-val').innerText = `D-${diff}`;
         }
+
         function renderList(cid, data, type) {
             const container = document.getElementById(cid); container.innerHTML = "";
-            data.forEach(d => container.insertAdjacentHTML('beforeend', createItemHTML(type, d.time || "09:00", d.task || d.habit || "내용 없음", d.checked)));
+            data.forEach(d => container.insertAdjacentHTML('beforeend', createItemHTML(type, d.time || "09:00", d.task || d.habit || "내용 없음", d.checked, d.isRecurring)));
         }
-        function createItemHTML(type, time, text, checked) {
+
+        function createItemHTML(type, time, text, checked, isRecur) {
             return `<div class="item-row text-black">
+                <i class="fas fa-redo text-[10px] ${isRecur?'recurring-active':'recurring-inactive'} cursor-pointer" onclick="toggleRecur(this)"></i>
                 ${type==='habit'?`<input type="checkbox" ${checked?'checked':''} onchange="saveCurrentData()" class="w-5 h-5 accent-black">`:''}
                 <span class="text-xs font-black w-12" contenteditable="true" onblur="saveCurrentData()">${time}</span>
                 <span class="flex-1 font-semibold text-sm" contenteditable="true" onblur="saveCurrentData()">${text}</span>
                 <i class="fas fa-times text-[10px] text-gray-300 cursor-pointer" onclick="this.closest('.item-row').remove(); saveCurrentData();"></i>
             </div>`;
         }
+
+        function toggleRecur(el) { el.classList.toggle('recurring-active'); el.classList.toggle('recurring-inactive'); saveCurrentData(); }
         function addNewItem(type) {
-            document.getElementById(type + '-list').insertAdjacentHTML('beforeend', createItemHTML(type, type==='routine'?"09:00":"08:00", "새 항목", false));
+            document.getElementById(type + '-list').insertAdjacentHTML('beforeend', createItemHTML(type, type==='routine'?"09:00":"08:00", "새 항목", false, false));
             saveCurrentData();
         }
+
         function saveCurrentData() {
-            const r = []; document.querySelectorAll('#routine-list .item-row').forEach(row => { const s = row.querySelectorAll('span'); r.push({ time: s[0].innerText, task: s[1].innerText }); });
+            const r = []; document.querySelectorAll('#routine-list .item-row').forEach(row => { const s = row.querySelectorAll('span'); r.push({ time: s[0].innerText, task: s[1].innerText, isRecurring: row.querySelector('.fa-redo').classList.contains('recurring-active') }); });
             localStorage.setItem(`${selectedDate}-routines`, JSON.stringify(r));
-            const h = []; document.querySelectorAll('#habit-list .item-row').forEach(row => { const s = row.querySelectorAll('span'); h.push({ time: s[0].innerText, habit: s[1].innerText, checked: row.querySelector('input')?.checked || false }); });
+            const h = []; document.querySelectorAll('#habit-list .item-row').forEach(row => { const s = row.querySelectorAll('span'); h.push({ time: s[0].innerText, habit: s[1].innerText, checked: row.querySelector('input')?.checked || false, isRecurring: row.querySelector('.fa-redo').classList.contains('recurring-active') }); });
             localStorage.setItem(`${selectedDate}-habits`, JSON.stringify(h));
             localStorage.setItem(`${selectedDate}-meal`, document.getElementById('meal-log').value);
         }
@@ -116,5 +186,3 @@
     </script>
 </body>
 </html>
-</html>
-
