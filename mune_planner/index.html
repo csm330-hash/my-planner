@@ -2,188 +2,179 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Content Director Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Director's Mobile Dashboard</title>
+    <link rel="manifest" href="manifest.json">
     <style>
         :root {
             --bg-color: #F2E9E4;
             --primary: #4A7C92;
             --secondary: #D98C52;
             --accent: #E9C46A;
-            --text-dark: #222222;
             --white: #ffffff;
         }
 
         body {
             background-color: var(--bg-color);
-            color: var(--text-dark);
             font-family: 'Pretendard', sans-serif;
-            margin: 0; padding: 20px;
+            margin: 0; padding: 15px;
             display: flex; flex-direction: column; align-items: center;
+            overflow-x: hidden;
         }
 
+        /* 모바일 헤더 */
         .header {
-            width: 100%; max-width: 800px;
-            display: flex; justify-content: space-between; align-items: flex-end;
-            margin-bottom: 30px; border-bottom: 3px solid var(--primary); padding-bottom: 10px;
-        }
-
-        .header h1 { margin: 0; color: var(--primary); font-size: 1.5rem; letter-spacing: -1px; }
-        .title-tag { font-size: 0.8rem; background: var(--primary); color: white; padding: 2px 8px; border-radius: 4px; }
-
-        .container {
-            width: 100%; max-width: 800px;
-            display: grid; grid-template-columns: 1fr 1.5fr; gap: 20px;
-        }
-
-        @media (max-width: 600px) { .container { grid-template-columns: 1fr; } }
-
-        .card {
-            background: var(--white); border-radius: 12px; padding: 20px;
-            box-shadow: 6px 6px 0px rgba(74, 124, 146, 0.2); border: 1.5px solid var(--primary);
+            width: 100%;
+            border-bottom: 2px solid var(--primary);
+            padding-bottom: 10px;
             margin-bottom: 20px;
         }
+        .header h1 { margin: 5px 0; font-size: 1.2rem; color: var(--primary); }
+        .tag { font-size: 0.7rem; background: var(--primary); color: white; padding: 2px 6px; border-radius: 3px; }
 
-        .card-title {
-            font-weight: 800; color: var(--secondary); margin-bottom: 15px;
-            display: flex; align-items: center; gap: 8px; border-bottom: 1px solid #eee; padding-bottom: 8px;
+        .card {
+            background: var(--white); width: 92%; border-radius: 15px;
+            padding: 15px; margin-bottom: 15px;
+            box-shadow: 4px 4px 0px rgba(74, 124, 146, 0.1);
+            border: 1px solid var(--primary);
         }
 
-        .dday-item {
-            display: flex; justify-content: space-between; align-items: center;
-            margin-bottom: 12px; padding: 10px; background: #fdfdfd;
-            border-left: 4px solid var(--accent); border-radius: 4px;
-        }
-        .dday-label { font-size: 0.85rem; font-weight: 600; color: #555; }
-        .dday-value { color: var(--secondary); font-weight: 800; font-size: 1rem; }
+        .card-title { font-weight: bold; color: var(--secondary); margin-bottom: 10px; font-size: 0.9rem; }
 
-        .task-list { list-style: none; padding: 0; }
-        .task-item {
-            display: flex; align-items: center; gap: 10px; margin-bottom: 10px;
-            padding: 12px; border-radius: 8px; background: #f9f9f9; border: 1px solid #eee;
-        }
-        .task-item input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--primary); }
-        .task-done { text-decoration: line-through; opacity: 0.5; }
+        /* 알람 설정 UI */
+        .alarm-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #eee; }
+        .alarm-info { display: flex; flex-direction: column; }
+        .alarm-label { font-size: 0.85rem; font-weight: 600; }
+        .alarm-time { font-size: 0.75rem; color: #888; }
 
-        .noti-btn {
-            background: var(--accent); border: none; padding: 10px 20px;
-            border-radius: 8px; font-weight: bold; cursor: pointer; margin-bottom: 20px;
-            box-shadow: 3px 3px 0px var(--primary);
+        .btn-active { 
+            background: var(--accent); border: none; padding: 8px 15px; 
+            border-radius: 20px; font-weight: bold; font-size: 0.8rem;
         }
-        
-        .add-task { display: flex; gap: 8px; margin-top: 15px; }
-        .add-task input { flex-grow: 1; border: 1px solid #ddd; border-radius: 6px; padding: 10px; }
-        .add-task button { background: var(--primary); color: white; border: none; padding: 10px 15px; border-radius: 6px; font-weight: bold; }
     </style>
 </head>
 <body>
 
     <div class="header">
-        <div>
-            <span class="title-tag">AI VISUAL CONTENT DIRECTOR</span>
-            <h1>STRATEGIC DASHBOARD</h1>
-        </div>
-        <div id="currentTime" style="font-weight: bold; color: var(--primary);"></div>
+        <span class="tag">AI VISUAL CONTENT DIRECTOR</span>
+        <h1 id="clock">00:00:00</h1>
     </div>
 
-    <button class="noti-btn" onclick="requestNotiPermission()">🔔 업무 알림 활성화</button>
+    <button class="btn-active" style="width: 100%; margin-bottom: 15px;" onclick="initMobileAlarm()">🔔 핸드폰 알람 모드 활성화</button>
 
-    <div class="container">
-        <div class="column">
-            <div class="card">
-                <div class="card-title">📅 STRATEGIC MILESTONES</div>
-                <div id="ddayContainer"></div>
-            </div>
-        </div>
+    <div class="card">
+        <div class="card-title">📅 주요 마일스톤 (D-Day)</div>
+        <div id="ddayContainer"></div>
+    </div>
 
-        <div class="column">
-            <div class="card">
-                <div class="card-title">📝 TODAY'S FOCUS</div>
-                <ul class="task-list" id="taskList"></ul>
-                <div class="add-task">
-                    <input type="text" id="taskInput" placeholder="새로운 업무를 입력하세요">
-                    <button onclick="addTask()">추가</button>
+    <div class="card">
+        <div class="card-title">⏰ 오늘의 업무 알람</div>
+        <div id="alarmList">
+            <div class="alarm-row">
+                <div class="alarm-info">
+                    <span class="alarm-label">울산온 플랫폼 기획</span>
+                    <span class="alarm-time">14:00 예정</span>
                 </div>
+                <input type="time" onchange="updateAlarmTime(0, this.value)" value="14:00">
+            </div>
+            <div class="alarm-row">
+                <div class="alarm-info">
+                    <span class="alarm-label">AI 콘텐츠 제작 강의</span>
+                    <span class="alarm-time">16:00 예정</span>
+                </div>
+                <input type="time" onchange="updateAlarmTime(1, this.value)" value="16:00">
             </div>
         </div>
     </div>
+
+    <audio id="alarmSound" src="https://actions.google.com/sounds/v1/alarms/digital_watch_alarm_long.ogg" preload="auto"></audio>
 
     <script>
-        // ----------------------------------------------------
-        // [수정 포인트] 여기에 중요한 날짜들을 직접 입력하세요!
-        // ----------------------------------------------------
+        // 날짜 데이터 (수동 관리)
         const milestones = [
-            { label: "GCP 크레딧 만료", date: "2026-03-16" },
-            { label: "예비창업패키지 마감", date: "2026-03-30" },
-            { label: "AI 강의안 초안 완성", date: "2026-02-15" }
+            { label: "GCP 만료", date: "2026-03-16" },
+            { label: "예비창업패키지 마감", date: "2026-03-30" }
         ];
 
-        // --- D-Day 계산 ---
+        // 알람 설정 데이터
+        let myAlarms = [
+            { label: "울산온 플랫폼 기획", time: "14:00", active: true },
+            { label: "AI 콘텐츠 제작 강의", time: "16:00", active: true }
+        ];
+
+        function initMobileAlarm() {
+            // 핸드폰에서 소리/진동 권한을 얻기 위해 첫 터치가 필요합니다.
+            Notification.requestPermission();
+            const audio = document.getElementById('alarmSound');
+            audio.play().then(() => {
+                audio.pause();
+                alert("핸드폰 알람 모드가 활성화되었습니다! 앱을 완전히 끄지 마세요.");
+            });
+        }
+
+        function updateAlarmTime(index, newTime) {
+            myAlarms[index].time = newTime;
+            console.log("알람 변경:", myAlarms[index]);
+        }
+
+        function checkAlarms() {
+            const now = new Date();
+            const curTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+            const seconds = now.getSeconds();
+
+            // 매 분 0초에 알람 확인
+            if (seconds === 0) {
+                myAlarms.forEach(alarm => {
+                    if (alarm.time === curTime && alarm.active) {
+                        triggerMobileAlarm(alarm.label);
+                    }
+                });
+            }
+            document.getElementById('clock').innerText = now.toLocaleTimeString();
+        }
+
+        function triggerMobileAlarm(label) {
+            // 1. 진동 (모바일 전용)
+            if (navigator.vibrate) navigator.vibrate([500, 200, 500]);
+
+            // 2. 소리
+            const audio = document.getElementById('alarmSound');
+            audio.play();
+
+            // 3. 알림 메시지
+            if (Notification.permission === "granted") {
+                new Notification("⏰ 업무 시간 알림", {
+                    body: `[${label}] 작업을 시작할 시간입니다!`,
+                    icon: "https://cdn-icons-png.flaticon.com/512/616/616490.png"
+                });
+            } else {
+                alert(`⏰ [${label}] 시간입니다!`);
+            }
+        }
+
         function renderDdays() {
             const container = document.getElementById('ddayContainer');
-            container.innerHTML = '';
             const now = new Date();
             now.setHours(0,0,0,0);
 
             milestones.forEach(m => {
                 const target = new Date(m.date);
                 const diff = Math.ceil((target - now) / (1000 * 60 * 60 * 24));
-                const div = document.createElement('div');
-                div.className = 'dday-item';
-                div.innerHTML = `
-                    <span class="dday-label">${m.label}</span>
-                    <span class="dday-value">${diff === 0 ? "D-Day" : (diff > 0 ? "D-" + diff : "D+" + Math.abs(diff))}</span>
+                container.innerHTML += `
+                    <div style="display:flex; justify-content:space-between; font-size:0.85rem; margin-bottom:8px;">
+                        <span>${m.label}</span>
+                        <span style="color:var(--secondary); font-weight:bold;">D-${diff}</span>
+                    </div>
                 `;
-                container.appendChild(div);
             });
         }
 
-        // --- 알림 권한 ---
-        function requestNotiPermission() {
-            Notification.requestPermission().then(perm => {
-                if (perm === "granted") alert("알림이 활성화되었습니다.");
-            });
-        }
-
-        // --- 업무 리스트 (기기 저장 방식) ---
-        let tasks = JSON.parse(localStorage.getItem('director_tasks')) || [];
-
-        function renderTasks() {
-            const list = document.getElementById('taskList');
-            list.innerHTML = '';
-            tasks.forEach((t, i) => {
-                const li = document.createElement('li');
-                li.className = 'task-item';
-                li.innerHTML = `
-                    <input type="checkbox" ${t.done ? 'checked' : ''} onchange="toggleTask(${i})">
-                    <span class="${t.done ? 'task-done' : ''}">${t.text}</span>
-                    <button onclick="deleteTask(${i})" style="margin-left:auto; border:none; background:none; color:#ccc; cursor:pointer;">✕</button>
-                `;
-                list.appendChild(li);
-            });
-            localStorage.setItem('director_tasks', JSON.stringify(tasks));
-        }
-
-        function addTask() {
-            const input = document.getElementById('taskInput');
-            if (!input.value) return;
-            tasks.push({ text: input.value, done: false });
-            input.value = '';
-            renderTasks();
-        }
-
-        function toggleTask(i) { tasks[i].done = !tasks[i].done; renderTasks(); }
-        function deleteTask(i) { tasks.splice(i, 1); renderTasks(); }
-
-        setInterval(() => {
-            document.getElementById('currentTime').innerText = new Date().toLocaleTimeString();
-        }, 1000);
-
+        setInterval(checkAlarms, 1000);
         renderDdays();
-        renderTasks();
     </script>
 </body>
 </html>
+
 
 
 
