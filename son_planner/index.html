@@ -3,130 +3,117 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>무이치로 안개 호흡 플래너</title>
+    <title>무이치로 안개 호흡 플래너 v2</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Noto+Sans+KR:wght@400;700&display=swap');
-        body { font-family: 'Noto+Sans+KR', sans-serif; background-color: #0f172a; color: #ccfbf1; } /* 어두운 배경에 민트색 포인트 */
+        body { font-family: 'Noto+Sans+KR', sans-serif; background-color: #0f172a; color: #ccfbf1; -webkit-tap-highlight-color: transparent; }
         .muichiro-font { font-family: 'Black Han Sans', sans-serif; }
         .card { background: rgba(30, 41, 59, 0.8); border: 2px solid #2dd4bf; border-radius: 20px; padding: 1.5rem; }
-        .sticker-slot { width: 50px; height: 50px; border: 2px dashed #5eead4; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.3s; }
-        .sticker-active { background: #2dd4bf; border-style: solid; font-size: 1.5rem; box-shadow: 0 0 15px #2dd4bf; }
-        .btn-action { background: #14b8a6; color: #0f172a; font-weight: bold; border-radius: 12px; padding: 10px; }
+        .sticker-slot { width: 50px; height: 50px; border: 2px dashed #5eead4; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.3s; font-size: 1.5rem; }
+        .sticker-active { background: #2dd4bf; border-style: solid; box-shadow: 0 0 15px #2dd4bf; animation: pop 0.3s ease-out; }
+        @keyframes pop { 0% { transform: scale(0.5); opacity: 0; } 80% { transform: scale(1.1); } 100% { transform: scale(1); opacity: 1; } }
+        .mist-effect { background: linear-gradient(45deg, #0f172a, #115e59, #0f172a); background-size: 200% 200%; animation: mistMove 5s ease infinite; }
+        @keyframes mistMove { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
     </style>
 </head>
-<body class="p-4 md:p-8">
-    <div class="max-w-2xl mx-auto space-y-6">
+<body class="p-4 md:p-8 min-h-screen bg-slate-900">
+    <div class="max-w-2xl mx-auto space-y-6 relative z-10">
         <header class="text-center py-4">
-            <h1 class="muichiro-font text-4xl text-teal-300 tracking-widest">안개의 호흡 플래너</h1>
-            <p class="text-teal-500 mt-2">무이치로와 함께 목표를 달성하자!</p>
+            <h1 class="muichiro-font text-4xl text-teal-300 tracking-widest drop-shadow-lg">안개의 호흡 플래너</h1>
+            <p class="text-teal-500 mt-2 font-bold">무이치로와 함께 전집중 호흡!</p>
         </header>
 
-        <section class="card shadow-2xl">
-            <div class="flex justify-between items-center mb-4">
-                <h2 class="text-xl font-bold text-teal-300"><i class="fas fa-certificate mr-2"></i>칭찬 스티커 판</h2>
-                <span id="sticker-count" class="text-xs font-bold">0 / 20</span>
+        <section class="card shadow-2xl shadow-teal-500/20">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-bold text-teal-300"><i class="fas fa-certificate mr-2 animate-pulse"></i>수련 증표 (칭찬 스티커)</h2>
+                <span id="sticker-count" class="text-lg muichiro-font text-teal-200">0 / 20</span>
             </div>
-            <div id="sticker-board" class="grid grid-cols-5 gap-4 justify-items-center">
-                </div>
-            <button onclick="resetStickers()" class="w-full mt-6 text-[10px] text-teal-700 underline">판 초기화</button>
+            <div id="sticker-board" class="grid grid-cols-5 gap-4 justify-items-center mb-4"></div>
+            <button onclick="resetStickers()" class="w-full text-center text-xs text-teal-600 hover:text-teal-400 transition">다시 시작하기 (초기화)</button>
         </section>
 
         <section class="card">
-            <h2 class="text-xl font-bold mb-4 text-teal-300"><i class="fas fa-check-circle mr-2"></i>오늘의 수련</h2>
-            <div class="space-y-3" id="mission-list">
-                <div class="flex items-center gap-3 bg-slate-800 p-3 rounded-xl">
-                    <input type="checkbox" onchange="toggleMission(this)" class="w-6 h-6 accent-teal-400">
-                    <span class="flex-1 font-bold">수학 문제집 2쪽 풀기</span>
+            <h2 class="text-xl font-bold mb-4 text-teal-300"><i class="fas fa-check-circle mr-2"></i>오늘의 임무</h2>
+            <div class="space-y-3">
+                <div class="flex items-center gap-3 bg-slate-800/80 p-4 rounded-xl border border-teal-900">
+                    <input type="checkbox" onchange="toggleMission(this)" class="w-6 h-6 accent-teal-500">
+                    <span class="flex-1 font-bold text-lg">수학 문제집 2장 풀기</span>
                 </div>
-                <div class="flex items-center gap-3 bg-slate-800 p-3 rounded-xl">
-                    <input type="checkbox" onchange="toggleMission(this)" class="w-6 h-6 accent-teal-400">
-                    <span class="flex-1 font-bold">영어 단어 5개 외우기</span>
+                <div class="flex items-center gap-3 bg-slate-800/80 p-4 rounded-xl border border-teal-900">
+                    <input type="checkbox" onchange="toggleMission(this)" class="w-6 h-6 accent-teal-500">
+                    <span class="flex-1 font-bold text-lg">방 정리 정돈하기</span>
                 </div>
             </div>
         </section>
 
-        <section class="card bg-teal-900/30 border-teal-500/50">
-            <h2 class="text-sm font-bold text-teal-400 mb-2">디렉터 엄마의 전령</h2>
-            <p id="mom-msg" class="text-lg leading-relaxed">"오늘도 우리 아들, 무이치로처럼 멋지게 해내보자! 사랑해."</p>
+        <section class="card bg-gradient-to-r from-teal-900/40 to-slate-900/40 border-teal-500/30">
+            <h2 class="text-sm font-bold text-teal-400 mb-2">💬 디렉터 엄마의 전령</h2>
+            <p class="text-xl font-bold italic text-teal-100">"오늘도 무이치로처럼 침착하고 멋지게! 사랑해, 아들."</p>
         </section>
+    </div>
+
+    <div id="special-move-overlay" class="fixed inset-0 flex items-center justify-center mist-effect z-50 hidden opacity-0 transition-opacity duration-1000">
+        <div class="text-center space-y-8 p-8 bg-slate-900/80 rounded-3xl border-4 border-teal-500 shadow-[0_0_50px_#2dd4bf] transform scale-90 transition-transform duration-1000">
+            <h2 class="muichiro-font text-5xl md:text-6xl text-teal-200 animate-pulse drop-shadow-[0_0_10px_#ccfbf1]">🌫️ 전집중! 안개의 호흡! 🌫️</h2>
+            <p class="text-3xl text-teal-400 muichiro-font">제 7형... 아련 (朧)!</p>
+            <div class="text-8xl animate-bounce py-4">⚔️</div>
+            <p class="text-2xl text-white font-bold">축하해! 20개를 모두 모았어!</p>
+            <button onclick="closeSpecialMove()" class="bg-teal-500 hover:bg-teal-400 text-slate-900 font-black px-10 py-4 text-2xl rounded-2xl shadow-lg transition hover:scale-105">멋지다!</button>
+        </div>
     </div>
 
     <script>
         const SON_GAS_URL = "https://script.google.com/macros/s/AKfycbx2FYClZYDylebG9MNucCIunPuvlGsXfJfR2i9idgpMxE4-8LSNt9FFvLEbM_uXtsYS/exec";
         let currentStickers = parseInt(localStorage.getItem('son-sticker-total') || '0');
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
-        window.onload = () => {
-            initStickerBoard();
-            updateStickerDisplay();
-        };
+        window.onload = () => { initStickerBoard(); updateStickerDisplay(); };
 
-        // 스티커 판 생성
         function initStickerBoard() {
-            const board = document.getElementById('sticker-board');
-            board.innerHTML = '';
+            const board = document.getElementById('sticker-board'); board.innerHTML = '';
             for (let i = 1; i <= 20; i++) {
-                const isActive = i <= currentStickers;
-                board.insertAdjacentHTML('beforeend', `
-                    <div class="sticker-slot ${isActive ? 'sticker-active' : ''}" onclick="addSticker(${i})">
-                        ${isActive ? '🌫️' : ''}
-                    </div>
-                `);
+                board.insertAdjacentHTML('beforeend', `<div class="sticker-slot ${i <= currentStickers ? 'sticker-active' : ''}" onclick="addSticker(${i})">${i <= currentStickers ? '🌫️' : ''}</div>`);
             }
         }
-
-        // 스티커 추가 및 자동 저장
         function addSticker(index) {
             if (index === currentStickers + 1) {
-                currentStickers++;
-                localStorage.setItem('son-sticker-total', currentStickers);
-                initStickerBoard();
-                updateStickerDisplay();
-                saveToCloud('Sticker Earned', `Total: ${currentStickers}`);
-                playSuccessSound();
+                currentStickers++; localStorage.setItem('son-sticker-total', currentStickers);
+                initStickerBoard(); updateStickerDisplay(); saveToCloud('Sticker Earned', `Total: ${currentStickers}`);
+                if (currentStickers === 20) triggerSpecialMove(); else playSuccessSound();
             }
         }
-
-        function updateStickerDisplay() {
-            document.getElementById('sticker-count').innerText = `${currentStickers} / 20`;
-        }
-
-        function resetStickers() {
-            if(confirm("정말 초기화할까?")) {
-                currentStickers = 0;
-                localStorage.setItem('son-sticker-total', '0');
-                initStickerBoard();
-                updateStickerDisplay();
-                saveToCloud('Sticker Reset', 'Started over');
-            }
-        }
-
-        async function saveToCloud(type, content) {
-            try {
-                await fetch(SON_GAS_URL, {
-                    method: "POST",
-                    mode: "no-cors",
-                    body: JSON.stringify({ date: new Date().toLocaleDateString('sv-SE'), type: type, content: content })
-                });
-            } catch (e) { console.error("Cloud Error", e); }
-        }
-
-        function toggleMission(el) {
-            if(el.checked) {
-                saveToCloud('Mission Clear', el.nextElementSibling.innerText);
-            }
-        }
-
+        function updateStickerDisplay() { document.getElementById('sticker-count').innerText = `${currentStickers} / 20`; }
+        function resetStickers() { if(confirm("처음부터 다시 시작할까?")) { currentStickers = 0; localStorage.setItem('son-sticker-total', '0'); initStickerBoard(); updateStickerDisplay(); saveToCloud('Reset', 'Started over'); }}
+        async function saveToCloud(type, content) { try { await fetch(SON_GAS_URL, { method: "POST", mode: "no-cors", body: JSON.stringify({ date: new Date().toLocaleDateString('sv-SE'), type: type, content: content }) }); } catch (e) { console.error(e); } }
+        function toggleMission(el) { if(el.checked) saveToCloud('Mission Clear', el.nextElementSibling.innerText); }
+        
         function playSuccessSound() {
-            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
+            const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
             osc.connect(gain); gain.connect(audioCtx.destination);
-            osc.frequency.setValueAtTime(523.25, audioCtx.currentTime); // C5
-            osc.frequency.exponentialRampToValueAtTime(1046.50, audioCtx.currentTime + 0.1); // C6
-            gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
-            osc.start(); osc.stop(audioCtx.currentTime + 0.2);
+            osc.frequency.setValueAtTime(523.25, audioCtx.currentTime); osc.frequency.exponentialRampToValueAtTime(880, audioCtx.currentTime + 0.2);
+            gain.gain.setValueAtTime(0.2, audioCtx.currentTime); gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+            osc.start(); osc.stop(audioCtx.currentTime + 0.3);
+        }
+        
+        function triggerSpecialMove() {
+            const overlay = document.getElementById('special-move-overlay');
+            overlay.classList.remove('hidden'); setTimeout(() => { overlay.classList.remove('opacity-0'); overlay.children[0].classList.remove('scale-90'); }, 50);
+            playSpecialSound(); saveToCloud('Goal Achieved', '20 Stickers! Muichiro Special Move Triggered!');
+        }
+        function closeSpecialMove() {
+            const overlay = document.getElementById('special-move-overlay');
+            overlay.classList.add('opacity-0'); overlay.children[0].classList.add('scale-90');
+            setTimeout(() => { overlay.classList.add('hidden'); resetStickers(); }, 1000);
+        }
+        function playSpecialSound() {
+            const bufferSize = 2 * audioCtx.sampleRate; const noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+            const output = noiseBuffer.getChannelData(0); for (let i = 0; i < bufferSize; i++) output[i] = Math.random() * 2 - 1;
+            const noise = audioCtx.createBufferSource(); noise.buffer = noiseBuffer;
+            const filter = audioCtx.createBiquadFilter(); filter.type = 'bandpass'; filter.frequency.setValueAtTime(400, audioCtx.currentTime); filter.frequency.exponentialRampToValueAtTime(3000, audioCtx.currentTime + 2);
+            const gain = audioCtx.createGain(); gain.gain.setValueAtTime(0, audioCtx.currentTime); gain.gain.linearRampToValueAtTime(0.3, audioCtx.currentTime + 0.5); gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 3);
+            noise.connect(filter); filter.connect(gain); gain.connect(audioCtx.destination); noise.start(); noise.stop(audioCtx.currentTime + 3);
         }
     </script>
 </body>
