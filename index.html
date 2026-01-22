@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>mune planner v35</title>
+    <title>mune planner v36</title>
     <meta name="apple-mobile-web-app-title" content="mune planner">
     <meta name="mobile-web-app-capable" content="yes">
     <script src="https://cdn.tailwindcss.com"></script>
@@ -26,7 +26,7 @@
             <div class="flex justify-between items-start">
                 <div>
                     <h1 class="text-2xl md:text-4xl font-black tracking-tighter">mune planner</h1>
-                    <p class="text-xs md:text-sm text-gray-400 font-medium mt-1">v35: 실시간 클라우드 동기화 모드</p>
+                    <p class="text-xs md:text-sm text-gray-400 font-medium mt-1">v36: 클라우드 & 수동 백업 완벽 복구</p>
                 </div>
                 <div class="flex items-center gap-3">
                     <button id="voice-master" onclick="startVoiceCommand()" class="w-12 h-12 rounded-full bg-red-500 text-white shadow-lg flex items-center justify-center"><i class="fas fa-microphone"></i></button>
@@ -40,6 +40,8 @@
                 <button onclick="copySection('habit')" class="btn-tool">건강복사</button>
                 <button onclick="openMultiPaste()" class="btn-tool bg-black text-white">다중붙여넣기</button>
                 <button onclick="exportData()" class="btn-tool">백업</button>
+                <button onclick="document.getElementById('import-file').click()" class="btn-tool border-dashed">가져오기</button>
+                <input type="file" id="import-file" style="display:none" onchange="importData(this)" accept=".json">
                 <input type="date" id="date-picker" onchange="changeDate()" class="flex-1 font-bold border rounded-lg px-2">
             </div>
         </header>
@@ -59,14 +61,12 @@
     <div id="multi-paste-modal"><div class="modal-content"><h3 class="text-xl font-bold mb-4">다중 붙여넣기</h3><div id="date-list" class="space-y-1 mb-6"></div><div class="flex gap-2"><button onclick="applyMultiPaste()" class="flex-1 bg-black text-white py-4 rounded-xl font-bold">적용</button><button onclick="closeMultiPaste()" class="flex-1 bg-gray-100 py-4 rounded-xl font-bold">취소</button></div></div></div>
 
     <script>
-        // [디렉터 전용 GAS URL]
         const GAS_URL = "https://script.google.com/macros/s/AKfycbywXxZHk_1E1FPO_0sNGG3sVEbqK_sr7W399zO4B_JYNHyschzsUwxLZ5JVGXAolHVd/exec";
         let selectedDate = new Date().toLocaleDateString('sv-SE');
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
         window.onload = () => { document.getElementById('date-picker').value = selectedDate; loadAllData(); setInterval(checkAlarm, 30000); };
 
-        // [클라우드 저장 비서]
         async function saveToCloud(type, content) {
             try {
                 await fetch(GAS_URL, {
@@ -74,11 +74,9 @@
                     mode: "no-cors",
                     body: JSON.stringify({ date: selectedDate, type: type, content: content })
                 });
-                console.log("Cloud synced: " + type);
             } catch (e) { console.error("Cloud error", e); }
         }
 
-        // [기존 음성 및 정렬 기능 유지]
         function speakSchedule() {
             speechSynthesis.cancel();
             const routines = JSON.parse(localStorage.getItem(`${selectedDate}-routines`) || '[]');
@@ -140,8 +138,7 @@
                 list.sort((a,b) => a.time.localeCompare(b.time));
                 localStorage.setItem(`${selectedDate}-${type}s`, JSON.stringify(list));
             });
-            const meal = document.getElementById('meal-log').value;
-            localStorage.setItem(`${selectedDate}-meal`, meal);
+            localStorage.setItem(`${selectedDate}-meal`, document.getElementById('meal-log').value);
             if(event?.type === 'blur') { loadAllData(); saveToCloud("Update", "Daily Log Saved"); }
         }
 
@@ -176,6 +173,30 @@
                 </div>`);
             });
         }
+
+        // [복구됨] 가져오기(Import) 기능
+        function importData(input) {
+            const file = input.files[0];
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    Object.keys(data).forEach(key => localStorage.setItem(key, data[key]));
+                    alert("성공적으로 불러왔습니다!");
+                    location.reload();
+                } catch (err) { alert("파일 형식이 올바르지 않습니다."); }
+            };
+            reader.readAsText(file);
+        }
+
+        function exportData() {
+            const data = JSON.stringify(localStorage, null, 2);
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(new Blob([data], {type: "application/json"}));
+            a.download = `mune_v36_backup.json`;
+            a.click();
+        }
+
         function checkAlarm() {
             const now = new Date(); const cur = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
             const all = [...JSON.parse(localStorage.getItem(`${selectedDate}-routines`) || '[]'), ...JSON.parse(localStorage.getItem(`${selectedDate}-habits`) || '[]')];
@@ -206,11 +227,12 @@
         }
         function changeDate() { selectedDate = document.getElementById('date-picker').value; loadAllData(); }
         function changeBg(color) { document.body.style.backgroundColor = color; localStorage.setItem('mune-bg', color); }
-        function exportData() { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(localStorage)], {type: "json"})); a.download = `mune_v35.json`; a.click(); }
+        function saveGlobal(id) { localStorage.setItem(id, document.getElementById(id).value); saveToCloud("Global-" + id, document.getElementById(id).value); }
         function previewImage(i) { if(i.files[0]) { const r = new FileReader(); r.onload = (e) => { const imgs = JSON.parse(localStorage.getItem('char-images') || '[]'); imgs.unshift(e.target.result); localStorage.setItem('char-images', JSON.stringify(imgs.slice(0,10))); loadAllData(); }; r.readAsDataURL(i.files[0]); } }
         function deleteImage(img) { if(confirm("삭제?")) { img.remove(); saveCurrentData(); } }
     </script>
 </body>
 </html>
+
 
 
