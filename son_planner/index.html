@@ -300,6 +300,9 @@
         function resetStickers() { if(confirm("모든 스티커를 지울까요?")) { stickers = new Array(20).fill(0); renderStickers(); } }
 
         init();
+        if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js');
+}
     </script>
 </body>
 </html>
