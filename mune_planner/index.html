@@ -3,177 +3,237 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Director's Mobile Dashboard</title>
-    <link rel="manifest" href="manifest.json">
+    <title>mune planner v36</title>
+    <meta name="apple-mobile-web-app-title" content="mune planner">
+    <meta name="mobile-web-app-capable" content="yes">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
-        :root {
-            --bg-color: #F2E9E4;
-            --primary: #4A7C92;
-            --secondary: #D98C52;
-            --accent: #E9C46A;
-            --white: #ffffff;
-        }
-
-        body {
-            background-color: var(--bg-color);
-            font-family: 'Pretendard', sans-serif;
-            margin: 0; padding: 15px;
-            display: flex; flex-direction: column; align-items: center;
-            overflow-x: hidden;
-        }
-
-        /* 모바일 헤더 */
-        .header {
-            width: 100%;
-            border-bottom: 2px solid var(--primary);
-            padding-bottom: 10px;
-            margin-bottom: 20px;
-        }
-        .header h1 { margin: 5px 0; font-size: 1.2rem; color: var(--primary); }
-        .tag { font-size: 0.7rem; background: var(--primary); color: white; padding: 2px 6px; border-radius: 3px; }
-
-        .card {
-            background: var(--white); width: 92%; border-radius: 15px;
-            padding: 15px; margin-bottom: 15px;
-            box-shadow: 4px 4px 0px rgba(74, 124, 146, 0.1);
-            border: 1px solid var(--primary);
-        }
-
-        .card-title { font-weight: bold; color: var(--secondary); margin-bottom: 10px; font-size: 0.9rem; }
-
-        /* 알람 설정 UI */
-        .alarm-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #eee; }
-        .alarm-info { display: flex; flex-direction: column; }
-        .alarm-label { font-size: 0.85rem; font-weight: 600; }
-        .alarm-time { font-size: 0.75rem; color: #888; }
-
-        .btn-active { 
-            background: var(--accent); border: none; padding: 8px 15px; 
-            border-radius: 20px; font-weight: bold; font-size: 0.8rem;
-        }
+        @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@400;600;700;800&display=swap');
+        body { font-family: 'Pretendard', sans-serif; transition: background 0.3s; background-color: #ffffff; color: #000; -webkit-tap-highlight-color: transparent; }
+        .card { background: rgba(255,255,255,0.95); backdrop-filter: blur(10px); border: 1px solid #e5e7eb; padding: 1.5rem; border-radius: 24px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05); }
+        .btn-tool { font-size: 0.7rem; font-weight: 700; border: 1px solid #000; padding: 6px 12px; border-radius: 8px; background: white; cursor: pointer; }
+        .item-row { border-bottom: 1px solid #f3f4f6; padding: 0.8rem 0; display: flex; align-items: center; gap: 0.6rem; }
+        .recurring-active { color: #6366f1 !important; font-weight: 900; }
+        .alarm-on { color: #ef4444 !important; }
+        #multi-paste-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; align-items: center; justify-content: center; padding: 1rem; }
+        .modal-content { background: white; padding: 1.5rem; border-radius: 20px; width: 100%; max-width: 400px; max-height: 85vh; overflow-y: auto; }
     </style>
 </head>
-<body>
-
-    <div class="header">
-        <span class="tag">AI VISUAL CONTENT DIRECTOR</span>
-        <h1 id="clock">00:00:00</h1>
-    </div>
-
-    <button class="btn-active" style="width: 100%; margin-bottom: 15px;" onclick="initMobileAlarm()">🔔 핸드폰 알람 모드 활성화</button>
-
-    <div class="card">
-        <div class="card-title">📅 주요 마일스톤 (D-Day)</div>
-        <div id="ddayContainer"></div>
-    </div>
-
-    <div class="card">
-        <div class="card-title">⏰ 오늘의 업무 알람</div>
-        <div id="alarmList">
-            <div class="alarm-row">
-                <div class="alarm-info">
-                    <span class="alarm-label">울산온 플랫폼 기획</span>
-                    <span class="alarm-time">14:00 예정</span>
+<body class="p-4 md:p-12">
+    <div class="max-w-7xl mx-auto space-y-6">
+        <header class="flex flex-col gap-4 border-b-2 border-black pb-6">
+            <div class="flex justify-between items-start">
+                <div>
+                    <h1 class="text-2xl md:text-4xl font-black tracking-tighter">mune planner</h1>
+                    <p class="text-xs md:text-sm text-gray-400 font-medium mt-1">v36: 클라우드 & 수동 백업 완벽 복구</p>
                 </div>
-                <input type="time" onchange="updateAlarmTime(0, this.value)" value="14:00">
-            </div>
-            <div class="alarm-row">
-                <div class="alarm-info">
-                    <span class="alarm-label">AI 콘텐츠 제작 강의</span>
-                    <span class="alarm-time">16:00 예정</span>
+                <div class="flex items-center gap-3">
+                    <button id="voice-master" onclick="startVoiceCommand()" class="w-12 h-12 rounded-full bg-red-500 text-white shadow-lg flex items-center justify-center"><i class="fas fa-microphone"></i></button>
+                    <input type="color" id="bg-color" onchange="changeBg(this.value)" class="w-8 h-8 rounded-full border-none cursor-pointer">
                 </div>
-                <input type="time" onchange="updateAlarmTime(1, this.value)" value="16:00">
             </div>
+            <div class="flex flex-wrap gap-2">
+                <button onclick="speakSchedule()" class="btn-tool bg-yellow-50">읽기</button>
+                <button onclick="stopSpeaking()" class="btn-tool">정지</button>
+                <button onclick="copySection('routine')" class="btn-tool">루틴복사</button>
+                <button onclick="copySection('habit')" class="btn-tool">건강복사</button>
+                <button onclick="openMultiPaste()" class="btn-tool bg-black text-white">다중붙여넣기</button>
+                <button onclick="exportData()" class="btn-tool">백업</button>
+                <button onclick="document.getElementById('import-file').click()" class="btn-tool border-dashed">가져오기</button>
+                <input type="file" id="import-file" style="display:none" onchange="importData(this)" accept=".json">
+                <input type="date" id="date-picker" onchange="changeDate()" class="flex-1 font-bold border rounded-lg px-2">
+            </div>
+        </header>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <section class="card"><div class="flex justify-between items-center mb-4"><h2 class="text-lg font-extrabold">루틴</h2><button onclick="addNewItem('routine')" class="text-xs font-bold">+ 추가</button></div><div id="routine-list"></div></section>
+            <section class="card"><div class="flex justify-between items-center mb-4"><h2 class="text-lg font-extrabold">건강</h2><button onclick="addNewItem('habit')" class="text-xs font-bold">+ 추가</button></div><div id="habit-list" class="mb-4"></div><textarea id="meal-log" onblur="saveCurrentData()" class="w-full h-24 p-4 text-sm bg-gray-50 rounded-2xl" placeholder="식단 기록..."></textarea></section>
+            <section class="card">
+                <div class="flex justify-between items-center mb-4"><h2 class="text-lg font-extrabold">창작 메모</h2><button onclick="document.getElementById('char-upload').click()" class="text-xs font-bold">+ 캐릭터</button></div>
+                <input type="file" id="char-upload" style="display:none" onchange="previewImage(this)" accept="image/*"><div id="image-gallery" class="flex gap-2 overflow-x-auto pb-3 mb-3"></div>
+                <div class="bg-gray-100 p-3 mb-4 rounded-xl flex justify-between items-center text-[10px] font-bold"><span>GCP 만료: 2026.03.10</span><span id="d-day-val" class="text-xl font-black">D-?</span></div>
+                <textarea id="idea-note" onblur="saveGlobal('idea-note')" class="w-full h-[180px] p-4 text-sm bg-gray-50 rounded-2xl leading-relaxed" placeholder="아이디어 기록..."></textarea>
+            </section>
         </div>
     </div>
 
-    <audio id="alarmSound" src="https://actions.google.com/sounds/v1/alarms/digital_watch_alarm_long.ogg" preload="auto"></audio>
+    <div id="multi-paste-modal"><div class="modal-content"><h3 class="text-xl font-bold mb-4">다중 붙여넣기</h3><div id="date-list" class="space-y-1 mb-6"></div><div class="flex gap-2"><button onclick="applyMultiPaste()" class="flex-1 bg-black text-white py-4 rounded-xl font-bold">적용</button><button onclick="closeMultiPaste()" class="flex-1 bg-gray-100 py-4 rounded-xl font-bold">취소</button></div></div></div>
 
     <script>
-        // 날짜 데이터 (수동 관리)
-        const milestones = [
-            { label: "GCP 만료", date: "2026-03-16" },
-            { label: "예비창업패키지 마감", date: "2026-03-30" }
-        ];
+        const GAS_URL = "https://script.google.com/macros/s/AKfycbywXxZHk_1E1FPO_0sNGG3sVEbqK_sr7W399zO4B_JYNHyschzsUwxLZ5JVGXAolHVd/exec";
+        let selectedDate = new Date().toLocaleDateString('sv-SE');
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
-        // 알람 설정 데이터
-        let myAlarms = [
-            { label: "울산온 플랫폼 기획", time: "14:00", active: true },
-            { label: "AI 콘텐츠 제작 강의", time: "16:00", active: true }
-        ];
+        window.onload = () => { document.getElementById('date-picker').value = selectedDate; loadAllData(); setInterval(checkAlarm, 30000); };
 
-        function initMobileAlarm() {
-            // 핸드폰에서 소리/진동 권한을 얻기 위해 첫 터치가 필요합니다.
-            Notification.requestPermission();
-            const audio = document.getElementById('alarmSound');
-            audio.play().then(() => {
-                audio.pause();
-                alert("핸드폰 알람 모드가 활성화되었습니다! 앱을 완전히 끄지 마세요.");
+        async function saveToCloud(type, content) {
+            try {
+                await fetch(GAS_URL, {
+                    method: "POST",
+                    mode: "no-cors",
+                    body: JSON.stringify({ date: selectedDate, type: type, content: content })
+                });
+            } catch (e) { console.error("Cloud error", e); }
+        }
+
+        function speakSchedule() {
+            speechSynthesis.cancel();
+            const routines = JSON.parse(localStorage.getItem(`${selectedDate}-routines`) || '[]');
+            const text = routines.map(r => `${r.time.split(':')[0]}시 ${r.time.split(':')[1] === '00' ? '' : r.time.split(':')[1] + '분'}, ${r.task}`).join('. ');
+            const msg = new SpeechSynthesisUtterance(routines.length ? "디렉터님, 일정입니다. " + text : "일정이 없습니다.");
+            msg.lang = 'ko-KR'; speechSynthesis.speak(msg);
+        }
+        function stopSpeaking() { speechSynthesis.cancel(); }
+
+        function startVoiceCommand() {
+            const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+            recognition.lang = 'ko-KR';
+            recognition.onstart = () => document.getElementById('voice-master').style.background = '#22c55e';
+            recognition.onresult = (e) => processCommand(e.results[0][0].transcript);
+            recognition.onend = () => document.getElementById('voice-master').style.background = '#ef4444';
+            recognition.start();
+        }
+
+        function processCommand(cmd) {
+            const korHours = {"한":1,"두":2,"세":3,"네":4,"다섯":5,"여섯":6,"일곱":7,"여덟":8,"아홉":9,"열":10,"열한":11,"열두":12};
+            let time = "09:00"; let content = cmd.replace(/루틴|건강|메모|추가|삭제/g, '').trim();
+            const timeMatch = cmd.match(/(\d+)\s*시/) || cmd.match(/([가-힣]+)\s*시/);
+            if (timeMatch) {
+                let hour = timeMatch[1]; if (korHours[hour]) hour = korHours[hour];
+                time = String(hour).padStart(2, '0') + ":00"; content = content.replace(timeMatch[0], '').trim();
+            }
+            if (cmd.includes('추가')) {
+                if (cmd.includes('루틴')) addData('routine', { time, task: content, alarm: true, isRecurring: false });
+                else if (cmd.includes('건강')) addData('habit', { time, habit: content, checked: false, alarm: true, isRecurring: false });
+                else if (cmd.includes('메모')) { document.getElementById('idea-note').value += ' ' + content; saveGlobal('idea-note'); }
+            } else if (cmd.includes('삭제')) {
+                ['routine', 'habit'].forEach(type => {
+                    const filtered = JSON.parse(localStorage.getItem(`${selectedDate}-${type}s`) || '[]').filter(i => !(i.task || i.habit).includes(content));
+                    localStorage.setItem(`${selectedDate}-${type}s`, JSON.stringify(filtered));
+                });
+            }
+            loadAllData(); saveToCloud("Voice Command", cmd);
+        }
+
+        function addData(type, obj) {
+            const data = JSON.parse(localStorage.getItem(`${selectedDate}-${type}s`) || '[]');
+            data.push(obj); localStorage.setItem(`${selectedDate}-${type}s`, JSON.stringify(data));
+            saveToCloud(type, JSON.stringify(obj));
+        }
+
+        function saveCurrentData() {
+            ['routine', 'habit'].forEach(type => {
+                const list = []; document.querySelectorAll(`#${type}-list .item-row`).forEach(row => {
+                    const spans = row.querySelectorAll('span');
+                    list.push({
+                        time: spans[0].innerText,
+                        task: type === 'routine' ? spans[1].innerText : undefined,
+                        habit: type === 'habit' ? spans[1].innerText : undefined,
+                        checked: type === 'habit' ? row.querySelector('input')?.checked : undefined,
+                        alarm: row.querySelector('.fa-bell').classList.contains('alarm-on'),
+                        isRecurring: row.querySelector('.fa-redo').classList.contains('recurring-active')
+                    });
+                });
+                list.sort((a,b) => a.time.localeCompare(b.time));
+                localStorage.setItem(`${selectedDate}-${type}s`, JSON.stringify(list));
+            });
+            localStorage.setItem(`${selectedDate}-meal`, document.getElementById('meal-log').value);
+            if(event?.type === 'blur') { loadAllData(); saveToCloud("Update", "Daily Log Saved"); }
+        }
+
+        function saveGlobal(id) {
+            const val = document.getElementById(id).value;
+            localStorage.setItem(id, val);
+            saveToCloud("Global-" + id, val);
+        }
+
+        function loadAllData() {
+            document.body.style.backgroundColor = localStorage.getItem('mune-bg') || '#ffffff';
+            document.getElementById('idea-note').value = localStorage.getItem('idea-note') || "";
+            renderList('routine-list', JSON.parse(localStorage.getItem(`${selectedDate}-routines`) || '[]'), 'routine');
+            renderList('habit-list', JSON.parse(localStorage.getItem(`${selectedDate}-habits`) || '[]'), 'habit');
+            document.getElementById('meal-log').value = localStorage.getItem(`${selectedDate}-meal`) || "";
+            const imgs = JSON.parse(localStorage.getItem('char-images') || '[]');
+            document.getElementById('image-gallery').innerHTML = imgs.map(src => `<img src="${src}" class="w-16 h-16 rounded-lg object-cover" onclick="deleteImage(this)">`).join('');
+            const diff = Math.ceil((new Date('2026-03-10') - new Date()) / (1000 * 60 * 60 * 24));
+            document.getElementById('d-day-val').innerText = `D-${diff}`;
+        }
+
+        function renderList(id, data, type) {
+            const container = document.getElementById(id); container.innerHTML = "";
+            data.forEach((d, i) => {
+                container.insertAdjacentHTML('beforeend', `<div class="item-row">
+                    <i class="fas fa-redo text-[10px] cursor-pointer ${d.isRecurring?'recurring-active':''}" onclick="this.classList.toggle('recurring-active'); saveCurrentData();"></i>
+                    <i class="fas fa-bell text-[10px] cursor-pointer ${d.alarm?'alarm-on':''}" onclick="this.classList.toggle('alarm-on'); saveCurrentData();"></i>
+                    ${type==='habit'?`<input type="checkbox" ${d.checked?'checked':''} onchange="saveCurrentData()" class="w-4 h-4 accent-black">`:''}
+                    <span class="text-[11px] font-black w-10" contenteditable="true" onblur="saveCurrentData()">${d.time}</span>
+                    <span class="flex-1 font-semibold text-sm" contenteditable="true" onblur="saveCurrentData()">${d.task || d.habit}</span>
+                    <i class="fas fa-times text-[10px] text-gray-300 cursor-pointer" onclick="this.closest('.item-row').remove(); saveCurrentData();"></i>
+                </div>`);
             });
         }
 
-        function updateAlarmTime(index, newTime) {
-            myAlarms[index].time = newTime;
-            console.log("알람 변경:", myAlarms[index]);
+        // [복구됨] 가져오기(Import) 기능
+        function importData(input) {
+            const file = input.files[0];
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    Object.keys(data).forEach(key => localStorage.setItem(key, data[key]));
+                    alert("성공적으로 불러왔습니다!");
+                    location.reload();
+                } catch (err) { alert("파일 형식이 올바르지 않습니다."); }
+            };
+            reader.readAsText(file);
         }
 
-        function checkAlarms() {
-            const now = new Date();
-            const curTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-            const seconds = now.getSeconds();
+        function exportData() {
+            const data = JSON.stringify(localStorage, null, 2);
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(new Blob([data], {type: "application/json"}));
+            a.download = `mune_v36_backup.json`;
+            a.click();
+        }
 
-            // 매 분 0초에 알람 확인
-            if (seconds === 0) {
-                myAlarms.forEach(alarm => {
-                    if (alarm.time === curTime && alarm.active) {
-                        triggerMobileAlarm(alarm.label);
-                    }
-                });
+        function checkAlarm() {
+            const now = new Date(); const cur = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+            const all = [...JSON.parse(localStorage.getItem(`${selectedDate}-routines`) || '[]'), ...JSON.parse(localStorage.getItem(`${selectedDate}-habits`) || '[]')];
+            if (all.some(i => i.alarm && i.time === cur)) playBell();
+        }
+        function playBell() { const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain(); osc.connect(gain); gain.connect(audioCtx.destination); osc.frequency.setValueAtTime(880, audioCtx.currentTime); gain.gain.setValueAtTime(0.1, audioCtx.currentTime); osc.start(); osc.stop(audioCtx.currentTime + 0.5); }
+        function copySection(type) { localStorage.setItem('copy-buffer', localStorage.getItem(`${selectedDate}-${type}s`)); alert("복사되었습니다."); }
+        function openMultiPaste() {
+            if(!localStorage.getItem('copy-buffer')) return alert("먼저 복사해주세요.");
+            const list = document.getElementById('date-list'); list.innerHTML = ""; const start = new Date();
+            for(let i=0; i<14; i++) {
+                const d = new Date(start); d.setDate(start.getDate()+i); const ds = d.toLocaleDateString('sv-SE');
+                list.insertAdjacentHTML('beforeend', `<label class="flex items-center gap-2 p-2"><input type="checkbox" value="${ds}" class="w-4 h-4">${ds}</label>`);
             }
-            document.getElementById('clock').innerText = now.toLocaleTimeString();
+            document.getElementById('multi-paste-modal').style.display = 'flex';
         }
-
-        function triggerMobileAlarm(label) {
-            // 1. 진동 (모바일 전용)
-            if (navigator.vibrate) navigator.vibrate([500, 200, 500]);
-
-            // 2. 소리
-            const audio = document.getElementById('alarmSound');
-            audio.play();
-
-            // 3. 알림 메시지
-            if (Notification.permission === "granted") {
-                new Notification("⏰ 업무 시간 알림", {
-                    body: `[${label}] 작업을 시작할 시간입니다!`,
-                    icon: "https://cdn-icons-png.flaticon.com/512/616/616490.png"
-                });
-            } else {
-                alert(`⏰ [${label}] 시간입니다!`);
-            }
+        function applyMultiPaste() {
+            const selected = Array.from(document.querySelectorAll('#date-list input:checked')).map(el => el.value);
+            const buffer = localStorage.getItem('copy-buffer');
+            selected.forEach(date => { const type = buffer.includes('task') ? 'routine' : 'habit'; localStorage.setItem(`${date}-${type}s`, buffer); });
+            closeMultiPaste(); loadAllData(); saveToCloud("Sync", "Multi-Paste Completed"); alert("동기화 완료!");
         }
-
-        function renderDdays() {
-            const container = document.getElementById('ddayContainer');
-            const now = new Date();
-            now.setHours(0,0,0,0);
-
-            milestones.forEach(m => {
-                const target = new Date(m.date);
-                const diff = Math.ceil((target - now) / (1000 * 60 * 60 * 24));
-                container.innerHTML += `
-                    <div style="display:flex; justify-content:space-between; font-size:0.85rem; margin-bottom:8px;">
-                        <span>${m.label}</span>
-                        <span style="color:var(--secondary); font-weight:bold;">D-${diff}</span>
-                    </div>
-                `;
-            });
+        function closeMultiPaste() { document.getElementById('multi-paste-modal').style.display = 'none'; }
+        function addNewItem(type) { 
+            const data = JSON.parse(localStorage.getItem(`${selectedDate}-${type}s`) || '[]');
+            data.push({ time: "09:00", task: "새 일정", habit: "새 일정", alarm: true, isRecurring: false });
+            localStorage.setItem(`${selectedDate}-${type}s`, JSON.stringify(data)); loadAllData();
         }
-
-        setInterval(checkAlarms, 1000);
-        renderDdays();
+        function changeDate() { selectedDate = document.getElementById('date-picker').value; loadAllData(); }
+        function changeBg(color) { document.body.style.backgroundColor = color; localStorage.setItem('mune-bg', color); }
+        function saveGlobal(id) { localStorage.setItem(id, document.getElementById(id).value); saveToCloud("Global-" + id, document.getElementById(id).value); }
+        function previewImage(i) { if(i.files[0]) { const r = new FileReader(); r.onload = (e) => { const imgs = JSON.parse(localStorage.getItem('char-images') || '[]'); imgs.unshift(e.target.result); localStorage.setItem('char-images', JSON.stringify(imgs.slice(0,10))); loadAllData(); }; r.readAsDataURL(i.files[0]); } }
+        function deleteImage(img) { if(confirm("삭제?")) { img.remove(); saveCurrentData(); } }
     </script>
 </body>
 </html>
+
 
 
 
