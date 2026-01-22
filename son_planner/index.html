@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>안개의 호흡 플래너</title>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
     <style>
         :root {
             --bg-color: #0b141d;
@@ -21,15 +22,13 @@
             align-items: center;
             padding: 20px;
             margin: 0;
-            /* 스티커 드래그 방지 */
-            -webkit-user-select: none;
-            user-select: none;
+            overflow-x: hidden;
         }
 
         h1 { color: var(--point-color); margin-bottom: 5px; text-align: center; }
         .subtitle { color: var(--point-color); font-size: 0.9em; margin-bottom: 30px; text-align: center; opacity: 0.8; }
 
-        .container { width: 100%; max-width: 600px; }
+        .container { width: 100%; max-width: 600px; z-index: 1; }
 
         .card {
             background-color: var(--card-bg);
@@ -47,20 +46,18 @@
             font-weight: bold;
             margin-bottom: 15px;
             color: var(--point-color);
-            font-size: 1.1em;
         }
 
-        /* --- 스티커 보드 스타일 --- */
+        /* --- 스티커 보드 --- */
         .sticker-grid {
             display: grid;
             grid-template-columns: repeat(5, 1fr);
             gap: 12px;
             justify-items: center;
-            padding: 10px 0;
         }
         .sticker-slot {
-            width: 45px;
-            height: 45px;
+            width: 50px;
+            height: 50px;
             background: rgba(255, 255, 255, 0.05);
             border: 2px dashed rgba(77, 242, 242, 0.4);
             border-radius: 50%;
@@ -68,96 +65,74 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: all 0.2s;
+            position: relative;
         }
-        .sticker-slot:hover { border-color: var(--point-color); }
-        
-        /* 실제 스티커 이미지 */
         .sticker-img {
-            width: 110%; /* 슬롯보다 약간 크게 */
-            height: 110%;
+            width: 120%; height: 120%;
             object-fit: contain;
-            filter: drop-shadow(0 2px 4px rgba(77,242,242,0.4));
             animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
+        @keyframes popIn { from { transform: scale(0); } to { transform: scale(1); } }
 
-        @keyframes popIn {
-            from { transform: scale(0) rotate(-20deg); opacity: 0; }
-            to { transform: scale(1) rotate(0deg); opacity: 1; }
-        }
-
-        /* 완성 축하 메시지 */
-        #rewardMessage {
-            display: none; /* 기본은 숨김 */
-            text-align: center;
-            color: var(--point-color);
-            margin-top: 15px;
-            font-weight: bold;
-            animation: glow 1.5s infinite alternate;
-        }
-        @keyframes glow { from { text-shadow: 0 0 5px var(--point-color); } to { text-shadow: 0 0 20px var(--point-color), 0 0 30px var(--point-color); } }
-
-
-        /* --- 임무 리스트 스타일 --- */
-        .task-list { list-style: none; padding: 0; margin: 0; }
+        /* --- 미션 리스트 --- */
+        .task-list { list-style: none; padding: 0; }
         .task-item {
-            display: flex;
-            align-items: center;
+            display: flex; align-items: center;
             background: rgba(255, 255, 255, 0.05);
-            padding: 12px;
-            border-radius: 10px;
-            margin-bottom: 8px;
-            transition: background 0.2s;
+            padding: 12px; border-radius: 10px; margin-bottom: 8px;
         }
-        .task-item:hover { background: rgba(255, 255, 255, 0.08); }
-        .task-item input[type="checkbox"] {
-            margin-right: 12px;
-            width: 18px; height: 18px;
-            accent-color: var(--point-color);
-            cursor: pointer;
-        }
-        .task-text { flex-grow: 1; transition: all 0.2s; }
-        .task-done { text-decoration: line-through; opacity: 0.5; color: #aaa; }
-        
-        .del-btn {
-            background: none; border: none; color: #ff6b6b;
-            cursor: pointer; font-size: 1.1em; padding: 5px 10px;
-            opacity: 0.7; transition: opacity 0.2s;
-        }
-        .del-btn:hover { opacity: 1; }
+        .task-item input { margin-right: 12px; accent-color: var(--point-color); cursor: pointer; }
+        .task-text { flex-grow: 1; }
+        .task-done { text-decoration: line-through; opacity: 0.5; }
+        .del-btn { background: none; border: none; color: #ff6b6b; cursor: pointer; font-size: 1.1em; }
 
-        .add-task { display: flex; gap: 10px; margin-top: 20px; }
+        .add-task { display: flex; gap: 10px; margin-top: 15px; }
         .add-task input {
             flex-grow: 1; background: rgba(255, 255, 255, 0.1);
             border: 1px solid rgba(77, 242, 242, 0.3);
-            border-radius: 8px; padding: 10px; color: white; outline: none;
+            border-radius: 8px; padding: 10px; color: white;
         }
-        .add-task input:focus { border-color: var(--point-color); }
         .add-task button {
             background: var(--point-color); color: var(--bg-color);
-            border: none; padding: 0 20px; border-radius: 8px;
-            cursor: pointer; font-weight: bold; transition: background 0.2s;
+            border: none; padding: 0 15px; border-radius: 8px; font-weight: bold; cursor: pointer;
         }
-        .add-task button:hover { background: #7fffff; }
 
-        /* --- 엄마의 전령 스타일 --- */
-        .message-box { background: rgba(77, 242, 242, 0.08); border: none; }
-        .message-header { font-size: 0.9em; margin-bottom: 10px; color: var(--point-color); font-weight: bold; display: flex; align-items: center; }
-        .message-header::before { content: '💬'; margin-right: 8px; font-size: 1.2em; }
+        /* --- 엄마의 전령 --- */
+        .message-box { background: rgba(77, 242, 242, 0.08); }
         #momMessage {
-            width: 100%; background: none; border: none;
-            color: var(--text-white); font-size: 1.1em; font-family: inherit;
-            resize: none; outline: none; line-height: 1.6; font-style: italic;
+            width: 100%; background: none; border: none; color: white;
+            font-size: 1.1em; resize: none; outline: none; line-height: 1.6; font-style: italic;
+        }
+
+        /* --- 축하 팝업 모달 --- */
+        #congratsModal {
+            display: none;
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85);
+            z-index: 100; align-items: center; justify-content: center;
+            flex-direction: column; text-align: center;
+        }
+        .modal-content {
+            background: var(--card-bg);
+            border: 2px solid var(--point-color);
+            padding: 40px; border-radius: 20px;
+            box-shadow: 0 0 30px var(--point-color);
+        }
+        .modal-content h2 { color: var(--point-color); font-size: 2em; margin-bottom: 10px; }
+        .modal-content p { font-size: 1.2em; margin-bottom: 25px; }
+        .close-modal {
+            background: var(--point-color); color: var(--bg-color);
+            border: none; padding: 10px 30px; border-radius: 10px;
+            font-weight: bold; cursor: pointer;
         }
     </style>
 </head>
 <body>
-    <audio id="stickerSound" src="https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.m4a"></audio>
-    <audio id="completeSound" src="https://assets.mixkit.co/active_storage/sfx/2019/2019-preview.m4a"></audio>
-
+    <audio id="soundPyo" src="https://t1.daumcdn.net/kakaocorp/kakaocorp/admin/service/1619602523212_1.mp3"></audio>
+    <audio id="soundFanfare" src="https://assets.mixkit.co/active_storage/sfx/2019/2019-preview.m4a"></audio>
 
     <h1>안개의 호흡 플래너</h1>
-    <div class="subtitle">무이치로처럼 집중해서 해내자!</div>
+    <div class="subtitle">모든 임무를 완수하고 수련 증표를 모아라!</div>
 
     <div class="container">
         <div class="card">
@@ -166,13 +141,8 @@
                 <span id="stickerCount">0 / 20</span>
             </div>
             <div class="sticker-grid" id="stickerGrid"></div>
-            
-            <div id="rewardMessage">
-                🎉 대단해! 20개의 증표를 모두 모았구나! 정말 자랑스러워! 🎉
-            </div>
-
-            <div style="text-align: center; margin-top: 20px; opacity: 0.6;">
-                <button onclick="resetStickers()" style="background:none; border:none; color:var(--text-white); cursor:pointer; font-size:0.8em; text-decoration: underline;">다시 시작하기 (초기화)</button>
+            <div style="text-align: center; margin-top: 20px;">
+                <button onclick="resetStickers()" style="background:none; border:none; color:#666; cursor:pointer; text-decoration:underline;">초기화</button>
             </div>
         </div>
 
@@ -180,42 +150,37 @@
             <div class="card-title">✔️ 오늘의 임무</div>
             <ul class="task-list" id="taskList"></ul>
             <div class="add-task">
-                <input type="text" id="taskInput" placeholder="할 일을 입력하고 추가 버튼을 눌러">
+                <input type="text" id="taskInput" placeholder="새로운 임무 추가">
                 <button onclick="addTask()">추가</button>
             </div>
         </div>
 
         <div class="card message-box">
-            <div class="message-header">엄마의 전령</div>
-            <textarea id="momMessage" rows="3" oninput="saveMessage()" placeholder="아들에게 남길 메시지를 여기에 적어주세요."></textarea>
+            <div style="font-weight:bold; color:var(--point-color); margin-bottom:10px;">💬 엄마의 전령</div>
+            <textarea id="momMessage" rows="3" oninput="saveMessage()" placeholder="메시지를 적어주세요."></textarea>
+        </div>
+    </div>
+
+    <div id="congratsModal">
+        <div class="modal-content">
+            <h2>🎉 수련 완료! 🎉</h2>
+            <p>20개의 증표를 모두 모았구나!<br>오늘 하루도 정말 고생 많았어, 아들!</p>
+            <button class="close-modal" onclick="closeModal()">멋져요!</button>
         </div>
     </div>
 
     <script>
-        // --- 설정 영역 (나중에 이미지 주소를 바꾸고 싶다면 여기를 수정하세요) ---
-        // 사용할 스티커 이미지 주소 (누끼 딴 PNG 이미지 주소)
-        const stickerImageURL = "https://cdn-icons-png.flaticon.com/512/616/616490.png"; 
-        // ----------------------------------------------------------------
-
-        let tasks = JSON.parse(localStorage.getItem('son_tasks')) || [
-            { id: 1, text: "수학 문제집 2장 풀기", done: false },
-            { id: 2, text: "방 정리 정돈하기", done: false }
-        ];
-        // 배열 크기를 20으로 고정
+        const stickerImg = "https://cdn-icons-png.flaticon.com/512/616/616490.png";
+        let tasks = JSON.parse(localStorage.getItem('son_tasks')) || [];
         let stickers = JSON.parse(localStorage.getItem('son_stickers')) || new Array(20).fill(false);
-        let message = localStorage.getItem('son_momMessage') || '"오늘도 무이치로처럼 침착하고 멋지게! 사랑해, 아들."';
-
-        const stickerSound = document.getElementById('stickerSound');
-        const completeSound = document.getElementById('completeSound');
+        let message = localStorage.getItem('son_momMessage') || "오늘도 무이치로처럼 멋지게!";
 
         function init() {
             renderTasks();
             renderStickers();
             document.getElementById('momMessage').value = message;
-            checkCompletion(false); // 초기 로드 시에는 소리 재생 안 함
         }
 
-        // --- 임무 관리 함수들 ---
         function renderTasks() {
             const list = document.getElementById('taskList');
             list.innerHTML = '';
@@ -235,8 +200,7 @@
         function addTask() {
             const input = document.getElementById('taskInput');
             if (!input.value.trim()) return;
-            const newTask = { id: Date.now(), text: input.value, done: false };
-            tasks.push(newTask);
+            tasks.push({ id: Date.now(), text: input.value, done: false });
             input.value = '';
             renderTasks();
         }
@@ -252,7 +216,6 @@
             renderTasks();
         }
 
-        // --- 스티커 및 보상 관리 함수들 ---
         function renderStickers() {
             const grid = document.getElementById('stickerGrid');
             grid.innerHTML = '';
@@ -260,9 +223,8 @@
             stickers.forEach((active, index) => {
                 const slot = document.createElement('div');
                 slot.className = 'sticker-slot';
-                // 스티커가 활성화 상태면 이미지를 넣음
                 if (active) {
-                    slot.innerHTML = `<img src="${stickerImageURL}" class="sticker-img" alt="sticker">`;
+                    slot.innerHTML = `<img src="${stickerImg}" class="sticker-img">`;
                     count++;
                 }
                 slot.onclick = () => toggleSticker(index);
@@ -274,45 +236,52 @@
         }
 
         function toggleSticker(index) {
+            const wasActive = stickers[index];
             stickers[index] = !stickers[index];
-            const currentCount = renderStickers();
-            
-            // 스티커를 붙였을 때만 소리 재생
-            if (stickers[index]) {
-                playSound(stickerSound);
+            const count = renderStickers();
+
+            if (!wasActive) { // 스티커를 붙일 때만
+                document.getElementById('soundPyo').currentTime = 0;
+                document.getElementById('soundPyo').play();
+                
+                if (count === 20) {
+                    triggerCelebration();
+                }
             }
-            checkCompletion(true);
         }
 
-        function playSound(audioElement) {
-            audioElement.currentTime = 0; // 소리 처음부터 재생
-            audioElement.play().catch(e => console.log("브라우저 정책으로 소리 자동 재생이 막혔을 수 있습니다."));
+        function triggerCelebration() {
+            // 1. 소리 재생
+            document.getElementById('soundFanfare').play();
+            // 2. 폭죽 터뜨리기
+            var duration = 3 * 1000;
+            var end = Date.now() + duration;
+
+            (function frame() {
+                confetti({ particleCount: 5, angle: 60, spread: 55, origin: { x: 0 } });
+                confetti({ particleCount: 5, angle: 120, spread: 55, origin: { x: 1 } });
+                if (Date.now() < end) { requestAnimationFrame(frame); }
+            }());
+
+            // 3. 팝업 띄우기
+            setTimeout(() => {
+                document.getElementById('congratsModal').style.display = 'flex';
+            }, 500);
         }
 
-        function checkCompletion(withSound) {
-            const count = stickers.filter(s => s).length;
-            const rewardMsg = document.getElementById('rewardMessage');
-            
-            if (count === 20) {
-                rewardMsg.style.display = 'block'; // 메시지 보이기
-                if (withSound) playSound(completeSound); // 완성 팡파레
-            } else {
-                rewardMsg.style.display = 'none'; // 메시지 숨기기
-            }
+        function closeModal() {
+            document.getElementById('congratsModal').style.display = 'none';
+        }
+
+        function saveMessage() {
+            localStorage.setItem('son_momMessage', document.getElementById('momMessage').value);
         }
 
         function resetStickers() {
-            if(confirm("정말 스티커를 모두 지우고 다시 시작할까요?")) {
+            if(confirm("초기화할까요?")) {
                 stickers = new Array(20).fill(false);
                 renderStickers();
-                checkCompletion(false);
             }
-        }
-
-        // --- 메시지 저장 함수 ---
-        function saveMessage() {
-            const msg = document.getElementById('momMessage').value;
-            localStorage.setItem('son_momMessage', msg);
         }
 
         init();
