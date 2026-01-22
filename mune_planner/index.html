@@ -54,8 +54,10 @@
             display: flex; justify-content: space-between; align-items: center;
             margin-bottom: 12px; padding: 10px; background: #fdfdfd;
             border-left: 4px solid var(--accent); border-radius: 4px;
+            animation: fadeIn 0.5s ease;
         }
-        .dday-label { font-size: 0.85rem; font-weight: 600; color: #555; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        .dday-label { font-size: 0.85rem; font-weight: 600; color: #555; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 70%; }
         .dday-value { color: var(--secondary); font-weight: 800; font-size: 1rem; }
 
         /* --- 업무 리스트 스타일 --- */
@@ -70,12 +72,13 @@
         .noti-btn {
             background: var(--accent); border: none; padding: 10px 20px;
             border-radius: 8px; font-weight: bold; cursor: pointer; margin-bottom: 20px;
-            box-shadow: 3px 3px 0px var(--primary);
+            box-shadow: 3px 3px 0px var(--primary); transition: 0.2s;
         }
+        .noti-btn:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0px var(--primary); }
         
         .add-task { display: flex; gap: 8px; margin-top: 15px; }
-        .add-task input { flex-grow: 1; border: 1px solid #ddd; border-radius: 6px; padding: 10px; }
-        .add-task button { background: var(--primary); color: white; border: none; padding: 10px 15px; border-radius: 6px; font-weight: bold; }
+        .add-task input { flex-grow: 1; border: 1px solid #ddd; border-radius: 6px; padding: 10px; outline: none; }
+        .add-task button { background: var(--primary); color: white; border: none; padding: 10px 15px; border-radius: 6px; font-weight: bold; cursor: pointer; }
     </style>
 </head>
 <body>
@@ -88,14 +91,17 @@
         <div id="currentTime" style="font-weight: bold; color: var(--primary);"></div>
     </div>
 
-    <button class="noti-btn" onclick="requestNotiPermission()">🔔 알림 권한 활성화</button>
+    <div style="display: flex; gap: 10px;">
+        <button class="noti-btn" onclick="requestNotiPermission()">🔔 알림 권한 활성화</button>
+        <button class="noti-btn" style="background: var(--primary); color: white;" onclick="fetchCalendar()">🔄 캘린더 새로고침</button>
+    </div>
 
     <div class="container">
         <div class="column">
             <div class="card">
                 <div class="card-title">📅 CALENDAR MILESTONES</div>
                 <div id="ddayContainer">
-                    <p style="font-size: 0.8rem; color: #888;">캘린더 데이터를 불러오는 중...</p>
+                    <p style="font-size: 0.8rem; color: #888;">데이터를 불러오는 중...</p>
                 </div>
             </div>
         </div>
@@ -113,7 +119,7 @@
     </div>
 
     <script>
-        // 1. 구글 캘린더 iCal 주소를 여기에 넣으세요!
+        // 사용자님의 구글 캘린더 주소 적용 완료
         const ICAL_URL = "https://calendar.google.com/calendar/ical/csm330%40gmail.com/public/basic.ics"; 
 
         // --- 알림 기능 ---
@@ -123,60 +129,70 @@
             });
         }
 
-        function sendNotification(title, msg) {
-            if (Notification.permission === "granted") {
-                new Notification(title, { body: msg });
-            }
-        }
-
-        // --- 구글 캘린더 파싱 및 D-Day ---
+        // --- 구글 캘린더 연동 로직 (강화형) ---
         async function fetchCalendar() {
-            if (ICAL_URL.includes("여기에_주소")) return;
+            const container = document.getElementById('ddayContainer');
+            container.innerHTML = '<p style="font-size: 0.8rem; color: #888;">업데이트 중...</p>';
             
             try {
-                // CORS 문제를 해결하기 위해 프록시 서버를 경유하여 데이터를 가져옵니다.
-                const proxyUrl = "https://api.allorigins.win/get?url=" + encodeURIComponent(ICAL_URL);
+                // 캐시 방지를 위해 타임스탬프 추가
+                const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(ICAL_URL)}&t=${Date.now()}`;
                 const response = await fetch(proxyUrl);
                 const data = await response.json();
                 const icsText = data.contents;
                 
+                if (!icsText) throw new Error("데이터를 가져오지 못했습니다.");
+
                 const events = parseICS(icsText);
                 renderDdays(events);
             } catch (e) {
                 console.error("캘린더 로드 실패:", e);
-                document.getElementById('ddayContainer').innerHTML = "<p>캘린더를 불러올 수 없습니다.</p>";
+                container.innerHTML = "<p style='font-size:0.8rem; color:var(--secondary);'>캘린더 연결 실패. '공개 설정'을 확인해 주세요.</p>";
             }
         }
 
+        // ICS 파일 해석기 (줄바꿈 및 복잡한 헤더 처리 강화)
         function parseICS(icsText) {
             const events = [];
             const lines = icsText.split(/\r?\n/);
             let currentEvent = null;
 
-            lines.forEach(line => {
+            for (let i = 0; i < lines.length; i++) {
+                let line = lines[i];
+
+                // 긴 문장 줄바꿈 처리 (Folded lines)
+                while (i + 1 < lines.length && (lines[i+1].startsWith(" ") || lines[i+1].startsWith("\t"))) {
+                    line += lines[i+1].substring(1);
+                    i++;
+                }
+
                 if (line.startsWith("BEGIN:VEVENT")) {
                     currentEvent = {};
                 } else if (line.startsWith("END:VEVENT")) {
-                    if (currentEvent.start && currentEvent.summary) events.push(currentEvent);
+                    if (currentEvent && currentEvent.start && currentEvent.summary) {
+                        events.push(currentEvent);
+                    }
                     currentEvent = null;
                 } else if (currentEvent) {
-                    if (line.startsWith("SUMMARY:")) currentEvent.summary = line.substring(8);
-                    if (line.startsWith("DTSTART")) {
+                    if (line.startsWith("SUMMARY")) {
+                        const colonIndex = line.indexOf(":");
+                        currentEvent.summary = line.substring(colonIndex + 1).replace(/\\/g, "");
+                    } else if (line.startsWith("DTSTART")) {
                         const dateMatch = line.match(/\d{8}/);
                         if (dateMatch) currentEvent.start = dateMatch[0];
                     }
                 }
-            });
+            }
             return events;
         }
 
         function renderDdays(events) {
             const container = document.getElementById('ddayContainer');
             container.innerHTML = '';
+            
             const now = new Date();
             now.setHours(0,0,0,0);
 
-            // 미래 일정만 필터링하여 정렬
             const futureEvents = events
                 .map(ev => {
                     const y = ev.start.substring(0,4), m = ev.start.substring(4,6), d = ev.start.substring(6,8);
@@ -184,21 +200,22 @@
                     const diff = Math.ceil((target - now) / (1000 * 60 * 60 * 24));
                     return { summary: ev.summary, diff: diff };
                 })
-                .filter(ev => ev.diff >= 0)
+                .filter(ev => ev.diff >= 0) // 오늘 포함 미래 일정만
                 .sort((a, b) => a.diff - b.diff)
-                .slice(0, 5); // 상위 5개만 표시
+                .slice(0, 6); // 상위 6개 표시
 
             if (futureEvents.length === 0) {
-                container.innerHTML = "<p>예정된 일정이 없습니다.</p>";
+                container.innerHTML = "<p style='font-size: 0.8rem;'>예정된 마일스톤이 없습니다.</p>";
                 return;
             }
 
             futureEvents.forEach(ev => {
                 const div = document.createElement('div');
                 div.className = 'dday-item';
+                let ddayText = ev.diff === 0 ? "D-Day" : "D-" + ev.diff;
                 div.innerHTML = `
                     <span class="dday-label">${ev.summary}</span>
-                    <span class="dday-value">${ev.diff === 0 ? "D-Day" : "D-" + ev.diff}</span>
+                    <span class="dday-value">${ddayText}</span>
                 `;
                 container.appendChild(div);
             });
@@ -216,6 +233,7 @@
                 li.innerHTML = `
                     <input type="checkbox" ${t.done ? 'checked' : ''} onchange="toggleTask(${i})">
                     <span class="${t.done ? 'task-done' : ''}">${t.text}</span>
+                    <button onclick="deleteTask(${i})" style="margin-left:auto; background:none; border:none; color:#ccc; cursor:pointer;">✕</button>
                 `;
                 list.appendChild(li);
             });
@@ -230,20 +248,20 @@
             renderTasks();
         }
 
-        function toggleTask(i) {
-            tasks[i].done = !tasks[i].done;
-            renderTasks();
-        }
+        function toggleTask(i) { tasks[i].done = !tasks[i].done; renderTasks(); }
+        function deleteTask(i) { tasks.splice(i, 1); renderTasks(); }
 
-        // 초기화
+        // 초기화 및 실시간 시계
         setInterval(() => {
             document.getElementById('currentTime').innerText = new Date().toLocaleTimeString();
         }, 1000);
 
+        // 페이지 로드 시 캘린더 호출
         fetchCalendar();
         renderTasks();
     </script>
 </body>
 </html>
+
 
 
