@@ -21,20 +21,23 @@
             align-items: center;
             padding: 20px;
             margin: 0;
+            /* 스티커 드래그 방지 */
+            -webkit-user-select: none;
+            user-select: none;
         }
 
-        h1 { color: var(--point-color); margin-bottom: 5px; }
-        .subtitle { color: var(--point-color); font-size: 0.9em; margin-bottom: 30px; }
+        h1 { color: var(--point-color); margin-bottom: 5px; text-align: center; }
+        .subtitle { color: var(--point-color); font-size: 0.9em; margin-bottom: 30px; text-align: center; opacity: 0.8; }
 
         .container { width: 100%; max-width: 600px; }
 
         .card {
             background-color: var(--card-bg);
-            border: 1px solid var(--point-color);
+            border: 1px solid rgba(77, 242, 242, 0.3);
             border-radius: 15px;
             padding: 20px;
             margin-bottom: 20px;
-            box-shadow: 0 0 15px rgba(77, 242, 242, 0.1);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
         }
 
         .card-title {
@@ -44,105 +47,132 @@
             font-weight: bold;
             margin-bottom: 15px;
             color: var(--point-color);
+            font-size: 1.1em;
         }
 
-        /* 스티커 보드 */
+        /* --- 스티커 보드 스타일 --- */
         .sticker-grid {
             display: grid;
             grid-template-columns: repeat(5, 1fr);
-            gap: 15px;
+            gap: 12px;
             justify-items: center;
+            padding: 10px 0;
         }
-        .sticker {
-            width: 40px;
-            height: 40px;
-            border: 2px dashed var(--point-color);
+        .sticker-slot {
+            width: 45px;
+            height: 45px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px dashed rgba(77, 242, 242, 0.4);
             border-radius: 50%;
             cursor: pointer;
-            transition: 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
         }
-        .sticker.active { background-color: var(--point-color); border-style: solid; }
+        .sticker-slot:hover { border-color: var(--point-color); }
+        
+        /* 실제 스티커 이미지 */
+        .sticker-img {
+            width: 110%; /* 슬롯보다 약간 크게 */
+            height: 110%;
+            object-fit: contain;
+            filter: drop-shadow(0 2px 4px rgba(77,242,242,0.4));
+            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
 
-        /* 임무 리스트 */
-        .task-list { list-style: none; padding: 0; }
+        @keyframes popIn {
+            from { transform: scale(0) rotate(-20deg); opacity: 0; }
+            to { transform: scale(1) rotate(0deg); opacity: 1; }
+        }
+
+        /* 완성 축하 메시지 */
+        #rewardMessage {
+            display: none; /* 기본은 숨김 */
+            text-align: center;
+            color: var(--point-color);
+            margin-top: 15px;
+            font-weight: bold;
+            animation: glow 1.5s infinite alternate;
+        }
+        @keyframes glow { from { text-shadow: 0 0 5px var(--point-color); } to { text-shadow: 0 0 20px var(--point-color), 0 0 30px var(--point-color); } }
+
+
+        /* --- 임무 리스트 스타일 --- */
+        .task-list { list-style: none; padding: 0; margin: 0; }
         .task-item {
             display: flex;
             align-items: center;
             background: rgba(255, 255, 255, 0.05);
-            padding: 10px;
-            border-radius: 8px;
-            margin-bottom: 8px;
-        }
-        .task-item input[type="checkbox"] { margin-right: 10px; accent-color: var(--point-color); }
-        .task-text { flex-grow: 1; }
-        .del-btn {
-            background: none;
-            border: none;
-            color: #ff6b6b;
-            cursor: pointer;
-            font-weight: bold;
-            margin-left: 10px;
-        }
-
-        .add-task {
-            display: flex;
-            gap: 10px;
-            margin-top: 15px;
-        }
-        .add-task input {
-            flex-grow: 1;
-            background: none;
-            border: 1px solid #444;
-            border-radius: 5px;
-            padding: 8px;
-            color: white;
-        }
-        .add-task btn {
-            background: var(--point-color);
-            color: var(--bg-color);
-            border: none;
-            padding: 8px 15px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-weight: bold;
-        }
-
-        /* 엄마의 전령 */
-        .message-box {
-            background: rgba(77, 242, 242, 0.05);
+            padding: 12px;
             border-radius: 10px;
-            padding: 15px;
-            font-style: italic;
+            margin-bottom: 8px;
+            transition: background 0.2s;
         }
-        .message-header { font-size: 0.8em; margin-bottom: 5px; opacity: 0.8; }
-        .message-header::before { content: '💬 '; }
+        .task-item:hover { background: rgba(255, 255, 255, 0.08); }
+        .task-item input[type="checkbox"] {
+            margin-right: 12px;
+            width: 18px; height: 18px;
+            accent-color: var(--point-color);
+            cursor: pointer;
+        }
+        .task-text { flex-grow: 1; transition: all 0.2s; }
+        .task-done { text-decoration: line-through; opacity: 0.5; color: #aaa; }
+        
+        .del-btn {
+            background: none; border: none; color: #ff6b6b;
+            cursor: pointer; font-size: 1.1em; padding: 5px 10px;
+            opacity: 0.7; transition: opacity 0.2s;
+        }
+        .del-btn:hover { opacity: 1; }
+
+        .add-task { display: flex; gap: 10px; margin-top: 20px; }
+        .add-task input {
+            flex-grow: 1; background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(77, 242, 242, 0.3);
+            border-radius: 8px; padding: 10px; color: white; outline: none;
+        }
+        .add-task input:focus { border-color: var(--point-color); }
+        .add-task button {
+            background: var(--point-color); color: var(--bg-color);
+            border: none; padding: 0 20px; border-radius: 8px;
+            cursor: pointer; font-weight: bold; transition: background 0.2s;
+        }
+        .add-task button:hover { background: #7fffff; }
+
+        /* --- 엄마의 전령 스타일 --- */
+        .message-box { background: rgba(77, 242, 242, 0.08); border: none; }
+        .message-header { font-size: 0.9em; margin-bottom: 10px; color: var(--point-color); font-weight: bold; display: flex; align-items: center; }
+        .message-header::before { content: '💬'; margin-right: 8px; font-size: 1.2em; }
         #momMessage {
-            width: 100%;
-            background: none;
-            border: none;
-            color: var(--text-white);
-            font-size: 1.1em;
-            font-family: inherit;
-            resize: none;
-            outline: none;
-            line-height: 1.5;
+            width: 100%; background: none; border: none;
+            color: var(--text-white); font-size: 1.1em; font-family: inherit;
+            resize: none; outline: none; line-height: 1.6; font-style: italic;
         }
     </style>
 </head>
 <body>
+    <audio id="stickerSound" src="https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.m4a"></audio>
+    <audio id="completeSound" src="https://assets.mixkit.co/active_storage/sfx/2019/2019-preview.m4a"></audio>
+
 
     <h1>안개의 호흡 플래너</h1>
-    <div class="subtitle">무이치로와 함께 전집중 호흡!</div>
+    <div class="subtitle">무이치로처럼 집중해서 해내자!</div>
 
     <div class="container">
         <div class="card">
             <div class="card-title">
-                <span>🌟 수련 증표 (칭찬 스티커)</span>
+                <span>🌟 수련 증표</span>
                 <span id="stickerCount">0 / 20</span>
             </div>
             <div class="sticker-grid" id="stickerGrid"></div>
-            <div style="text-align: center; margin-top: 15px;">
-                <button onclick="resetStickers()" style="background:none; border:none; color:#666; cursor:pointer; font-size:0.8em;">다시 시작하기 (초기화)</button>
+            
+            <div id="rewardMessage">
+                🎉 대단해! 20개의 증표를 모두 모았구나! 정말 자랑스러워! 🎉
+            </div>
+
+            <div style="text-align: center; margin-top: 20px; opacity: 0.6;">
+                <button onclick="resetStickers()" style="background:none; border:none; color:var(--text-white); cursor:pointer; font-size:0.8em; text-decoration: underline;">다시 시작하기 (초기화)</button>
             </div>
         </div>
 
@@ -150,33 +180,42 @@
             <div class="card-title">✔️ 오늘의 임무</div>
             <ul class="task-list" id="taskList"></ul>
             <div class="add-task">
-                <input type="text" id="taskInput" placeholder="새로운 임무를 입력하세요">
-                <button onclick="addTask()" style="background:var(--point-color); border:none; padding:8px 12px; border-radius:5px; cursor:pointer;">추가</button>
+                <input type="text" id="taskInput" placeholder="할 일을 입력하고 추가 버튼을 눌러">
+                <button onclick="addTask()">추가</button>
             </div>
         </div>
 
         <div class="card message-box">
             <div class="message-header">엄마의 전령</div>
-            <textarea id="momMessage" rows="2" oninput="saveMessage()" placeholder="아들에게 응원의 메시지를 남겨주세요"></textarea>
+            <textarea id="momMessage" rows="3" oninput="saveMessage()" placeholder="아들에게 남길 메시지를 여기에 적어주세요."></textarea>
         </div>
     </div>
 
     <script>
-        // --- 데이터 로드 및 초기화 ---
-        let tasks = JSON.parse(localStorage.getItem('tasks')) || [
+        // --- 설정 영역 (나중에 이미지 주소를 바꾸고 싶다면 여기를 수정하세요) ---
+        // 사용할 스티커 이미지 주소 (누끼 딴 PNG 이미지 주소)
+        const stickerImageURL = "https://cdn-icons-png.flaticon.com/512/616/616490.png"; 
+        // ----------------------------------------------------------------
+
+        let tasks = JSON.parse(localStorage.getItem('son_tasks')) || [
             { id: 1, text: "수학 문제집 2장 풀기", done: false },
             { id: 2, text: "방 정리 정돈하기", done: false }
         ];
-        let stickers = JSON.parse(localStorage.getItem('stickers')) || new Array(20).fill(false);
-        let message = localStorage.getItem('momMessage') || '"오늘도 무이치로처럼 침착하고 멋지게! 사랑해, 아들."';
+        // 배열 크기를 20으로 고정
+        let stickers = JSON.parse(localStorage.getItem('son_stickers')) || new Array(20).fill(false);
+        let message = localStorage.getItem('son_momMessage') || '"오늘도 무이치로처럼 침착하고 멋지게! 사랑해, 아들."';
+
+        const stickerSound = document.getElementById('stickerSound');
+        const completeSound = document.getElementById('completeSound');
 
         function init() {
             renderTasks();
             renderStickers();
             document.getElementById('momMessage').value = message;
+            checkCompletion(false); // 초기 로드 시에는 소리 재생 안 함
         }
 
-        // --- 임무 관리 ---
+        // --- 임무 관리 함수들 ---
         function renderTasks() {
             const list = document.getElementById('taskList');
             list.innerHTML = '';
@@ -185,22 +224,18 @@
                 li.className = 'task-item';
                 li.innerHTML = `
                     <input type="checkbox" ${task.done ? 'checked' : ''} onchange="toggleTask(${task.id})">
-                    <span class="task-text" style="${task.done ? 'text-decoration: line-through; opacity: 0.5;' : ''}">${task.text}</span>
+                    <span class="task-text ${task.done ? 'task-done' : ''}">${task.text}</span>
                     <button class="del-btn" onclick="deleteTask(${task.id})">✕</button>
                 `;
                 list.appendChild(li);
             });
-            localStorage.setItem('tasks', JSON.stringify(tasks));
+            localStorage.setItem('son_tasks', JSON.stringify(tasks));
         }
 
         function addTask() {
             const input = document.getElementById('taskInput');
             if (!input.value.trim()) return;
-            const newTask = {
-                id: Date.now(),
-                text: input.value,
-                done: false
-            };
+            const newTask = { id: Date.now(), text: input.value, done: false };
             tasks.push(newTask);
             input.value = '';
             renderTasks();
@@ -217,38 +252,67 @@
             renderTasks();
         }
 
-        // --- 스티커 관리 ---
+        // --- 스티커 및 보상 관리 함수들 ---
         function renderStickers() {
             const grid = document.getElementById('stickerGrid');
             grid.innerHTML = '';
             let count = 0;
             stickers.forEach((active, index) => {
-                const div = document.createElement('div');
-                div.className = `sticker ${active ? 'active' : ''}`;
-                div.onclick = () => toggleSticker(index);
-                grid.appendChild(div);
-                if (active) count++;
+                const slot = document.createElement('div');
+                slot.className = 'sticker-slot';
+                // 스티커가 활성화 상태면 이미지를 넣음
+                if (active) {
+                    slot.innerHTML = `<img src="${stickerImageURL}" class="sticker-img" alt="sticker">`;
+                    count++;
+                }
+                slot.onclick = () => toggleSticker(index);
+                grid.appendChild(slot);
             });
             document.getElementById('stickerCount').innerText = `${count} / 20`;
-            localStorage.setItem('stickers', JSON.stringify(stickers));
+            localStorage.setItem('son_stickers', JSON.stringify(stickers));
+            return count;
         }
 
         function toggleSticker(index) {
             stickers[index] = !stickers[index];
-            renderStickers();
+            const currentCount = renderStickers();
+            
+            // 스티커를 붙였을 때만 소리 재생
+            if (stickers[index]) {
+                playSound(stickerSound);
+            }
+            checkCompletion(true);
         }
 
-        function resetStickers() {
-            if(confirm("스티커를 모두 초기화할까요?")) {
-                stickers = new Array(20).fill(false);
-                renderStickers();
+        function playSound(audioElement) {
+            audioElement.currentTime = 0; // 소리 처음부터 재생
+            audioElement.play().catch(e => console.log("브라우저 정책으로 소리 자동 재생이 막혔을 수 있습니다."));
+        }
+
+        function checkCompletion(withSound) {
+            const count = stickers.filter(s => s).length;
+            const rewardMsg = document.getElementById('rewardMessage');
+            
+            if (count === 20) {
+                rewardMsg.style.display = 'block'; // 메시지 보이기
+                if (withSound) playSound(completeSound); // 완성 팡파레
+            } else {
+                rewardMsg.style.display = 'none'; // 메시지 숨기기
             }
         }
 
-        // --- 메시지 관리 ---
+        function resetStickers() {
+            if(confirm("정말 스티커를 모두 지우고 다시 시작할까요?")) {
+                stickers = new Array(20).fill(false);
+                renderStickers();
+                checkCompletion(false);
+            }
+        }
+
+        // --- 메시지 저장 함수 ---
         function saveMessage() {
             const msg = document.getElementById('momMessage').value;
-            localStorage.setItem('momMessage', msg);
+            localStorage.setItem('son_momMessage', msg);
         }
 
         init();
