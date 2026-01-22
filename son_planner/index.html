@@ -22,13 +22,14 @@
             align-items: center;
             padding: 20px;
             margin: 0;
-            overflow-x: hidden;
         }
 
-        h1 { color: var(--point-color); margin-bottom: 5px; text-align: center; }
-        .subtitle { color: var(--point-color); font-size: 0.9em; margin-bottom: 30px; text-align: center; opacity: 0.8; }
+        .header { text-align: center; margin-bottom: 25px; }
+        .date-display { color: var(--point-color); font-size: 1.1em; font-weight: bold; margin-bottom: 5px; }
+        h1 { color: var(--point-color); margin: 0; font-size: 1.8em; }
+        .subtitle { color: var(--point-color); font-size: 0.9em; opacity: 0.8; }
 
-        .container { width: 100%; max-width: 600px; z-index: 1; }
+        .container { width: 100%; max-width: 600px; }
 
         .card {
             background-color: var(--card-bg);
@@ -48,7 +49,7 @@
             color: var(--point-color);
         }
 
-        /* --- 스티커 보드 --- */
+        /* --- 스티커 보드 (날짜 포함) --- */
         .sticker-grid {
             display: grid;
             grid-template-columns: repeat(5, 1fr);
@@ -67,26 +68,39 @@
             justify-content: center;
             position: relative;
         }
-        .sticker-img {
-            width: 120%; height: 120%;
-            object-fit: contain;
-            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        .sticker-img { width: 110%; height: 110%; position: absolute; }
+        .sticker-date {
+            position: relative;
+            z-index: 2;
+            color: #000; /* 별 위에서 잘 보이도록 검은색 */
+            font-weight: bold;
+            font-size: 0.9em;
+            margin-top: 2px;
         }
-        @keyframes popIn { from { transform: scale(0); } to { transform: scale(1); } }
 
-        /* --- 미션 리스트 --- */
+        /* --- 임무 리스트 (알람 추가) --- */
         .task-list { list-style: none; padding: 0; }
         .task-item {
-            display: flex; align-items: center;
             background: rgba(255, 255, 255, 0.05);
-            padding: 12px; border-radius: 10px; margin-bottom: 8px;
+            padding: 12px; border-radius: 10px; margin-bottom: 10px;
+            display: flex; flex-direction: column; gap: 8px;
         }
-        .task-item input { margin-right: 12px; accent-color: var(--point-color); cursor: pointer; }
+        .task-main { display: flex; align-items: center; }
+        .task-main input[type="checkbox"] { margin-right: 12px; accent-color: var(--point-color); }
         .task-text { flex-grow: 1; }
         .task-done { text-decoration: line-through; opacity: 0.5; }
-        .del-btn { background: none; border: none; color: #ff6b6b; cursor: pointer; font-size: 1.1em; }
+        
+        .task-alarm-settings {
+            display: flex; align-items: center; gap: 10px;
+            font-size: 0.85em; color: var(--point-color);
+            padding-left: 30px;
+        }
+        .task-alarm-settings input[type="time"] {
+            background: rgba(0,0,0,0.3); border: 1px solid #444;
+            color: white; border-radius: 4px; padding: 2px 5px;
+        }
 
-        .add-task { display: flex; gap: 10px; margin-top: 15px; }
+        .add-task { display: flex; gap: 8px; margin-top: 15px; }
         .add-task input {
             flex-grow: 1; background: rgba(255, 255, 255, 0.1);
             border: 1px solid rgba(77, 242, 242, 0.3);
@@ -97,42 +111,32 @@
             border: none; padding: 0 15px; border-radius: 8px; font-weight: bold; cursor: pointer;
         }
 
-        /* --- 엄마의 전령 --- */
-        .message-box { background: rgba(77, 242, 242, 0.08); }
+        /* --- 축하 팝업 --- */
+        #congratsModal {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85); z-index: 100; align-items: center; justify-content: center;
+        }
+        .modal-content {
+            background: var(--card-bg); border: 2px solid var(--point-color);
+            padding: 40px; border-radius: 20px; text-align: center;
+            box-shadow: 0 0 30px var(--point-color);
+        }
+
         #momMessage {
             width: 100%; background: none; border: none; color: white;
             font-size: 1.1em; resize: none; outline: none; line-height: 1.6; font-style: italic;
         }
-
-        /* --- 축하 팝업 모달 --- */
-        #congratsModal {
-            display: none;
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.85);
-            z-index: 100; align-items: center; justify-content: center;
-            flex-direction: column; text-align: center;
-        }
-        .modal-content {
-            background: var(--card-bg);
-            border: 2px solid var(--point-color);
-            padding: 40px; border-radius: 20px;
-            box-shadow: 0 0 30px var(--point-color);
-        }
-        .modal-content h2 { color: var(--point-color); font-size: 2em; margin-bottom: 10px; }
-        .modal-content p { font-size: 1.2em; margin-bottom: 25px; }
-        .close-modal {
-            background: var(--point-color); color: var(--bg-color);
-            border: none; padding: 10px 30px; border-radius: 10px;
-            font-weight: bold; cursor: pointer;
-        }
     </style>
 </head>
 <body>
-    <audio id="soundPyo" src="https://t1.daumcdn.net/kakaocorp/kakaocorp/admin/service/1619602523212_1.mp3"></audio>
-    <audio id="soundFanfare" src="https://assets.mixkit.co/active_storage/sfx/2019/2019-preview.m4a"></audio>
+    <audio id="soundPyo" src="https://t1.daumcdn.net/kakaocorp/kakaocorp/admin/service/1619602523212_1.mp3" preload="auto"></audio>
+    <audio id="soundAlarm" src="https://assets.mixkit.co/active_storage/sfx/1014/1014-preview.m4a" preload="auto"></audio>
 
-    <h1>안개의 호흡 플래너</h1>
-    <div class="subtitle">모든 임무를 완수하고 수련 증표를 모아라!</div>
+    <div class="header">
+        <div class="date-display" id="todayDate"></div>
+        <h1>안개의 호흡 플래너</h1>
+        <div class="subtitle">집중해서 오늘의 임무를 완수하자!</div>
+    </div>
 
     <div class="container">
         <div class="card">
@@ -141,8 +145,8 @@
                 <span id="stickerCount">0 / 20</span>
             </div>
             <div class="sticker-grid" id="stickerGrid"></div>
-            <div style="text-align: center; margin-top: 20px;">
-                <button onclick="resetStickers()" style="background:none; border:none; color:#666; cursor:pointer; text-decoration:underline;">초기화</button>
+            <div style="text-align: center; margin-top: 15px;">
+                <button onclick="resetStickers()" style="background:none; border:none; color:#666; cursor:pointer; font-size:0.8em;">스티커 초기화</button>
             </div>
         </div>
 
@@ -150,139 +154,150 @@
             <div class="card-title">✔️ 오늘의 임무</div>
             <ul class="task-list" id="taskList"></ul>
             <div class="add-task">
-                <input type="text" id="taskInput" placeholder="새로운 임무 추가">
+                <input type="text" id="taskInput" placeholder="새로운 임무를 입력하세요">
                 <button onclick="addTask()">추가</button>
             </div>
         </div>
 
-        <div class="card message-box">
+        <div class="card" style="background:rgba(77, 242, 242, 0.08);">
             <div style="font-weight:bold; color:var(--point-color); margin-bottom:10px;">💬 엄마의 전령</div>
             <textarea id="momMessage" rows="3" oninput="saveMessage()" placeholder="메시지를 적어주세요."></textarea>
         </div>
     </div>
 
-    <div id="congratsModal">
-        <div class="modal-content">
-            <h2>🎉 수련 완료! 🎉</h2>
-            <p>20개의 증표를 모두 모았구나!<br>오늘 하루도 정말 고생 많았어, 아들!</p>
-            <button class="close-modal" onclick="closeModal()">멋져요!</button>
+    <div id="congratsModal" onclick="closeModal()">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <h2 style="color:var(--point-color);">🎉 수련 완료! 🎉</h2>
+            <p>20개의 증표를 모두 모았구나!<br>정말 멋지다 아들!</p>
+            <button onclick="closeModal()" style="background:var(--point-color); border:none; padding:10px 25px; border-radius:10px; font-weight:bold; cursor:pointer;">최고예요!</button>
         </div>
     </div>
 
     <script>
         const stickerImg = "https://cdn-icons-png.flaticon.com/512/616/616490.png";
-        let tasks = JSON.parse(localStorage.getItem('son_tasks')) || [];
-        let stickers = JSON.parse(localStorage.getItem('son_stickers')) || new Array(20).fill(false);
+        
+        // 데이터 구조 변경 (단순 true/false 대신 날짜 숫자를 저장)
+        let stickers = JSON.parse(localStorage.getItem('son_stickers_v2')) || new Array(20).fill(0);
+        let tasks = JSON.parse(localStorage.getItem('son_tasks_v2')) || [];
         let message = localStorage.getItem('son_momMessage') || "오늘도 무이치로처럼 멋지게!";
 
         function init() {
+            // 상단 날짜 표시
+            const now = new Date();
+            document.getElementById('todayDate').innerText = `${now.getFullYear()}년 ${now.getMonth()+1}월 ${now.getDate()}일`;
+            
             renderTasks();
             renderStickers();
             document.getElementById('momMessage').value = message;
+            
+            // 알람 체크 (매분 0초에 확인)
+            setInterval(checkAlarms, 60000);
+            checkAlarms(); // 시작할 때 한번 확인
         }
 
-        function renderTasks() {
-            const list = document.getElementById('taskList');
-            list.innerHTML = '';
-            tasks.forEach(task => {
-                const li = document.createElement('li');
-                li.className = 'task-item';
-                li.innerHTML = `
-                    <input type="checkbox" ${task.done ? 'checked' : ''} onchange="toggleTask(${task.id})">
-                    <span class="task-text ${task.done ? 'task-done' : ''}">${task.text}</span>
-                    <button class="del-btn" onclick="deleteTask(${task.id})">✕</button>
-                `;
-                list.appendChild(li);
-            });
-            localStorage.setItem('son_tasks', JSON.stringify(tasks));
-        }
-
-        function addTask() {
-            const input = document.getElementById('taskInput');
-            if (!input.value.trim()) return;
-            tasks.push({ id: Date.now(), text: input.value, done: false });
-            input.value = '';
-            renderTasks();
-        }
-
-        function deleteTask(id) {
-            tasks = tasks.filter(t => t.id !== id);
-            renderTasks();
-        }
-
-        function toggleTask(id) {
-            const task = tasks.find(t => t.id === id);
-            if (task) task.done = !task.done;
-            renderTasks();
-        }
-
+        // --- 스티커 로직 (날짜 포함) ---
         function renderStickers() {
             const grid = document.getElementById('stickerGrid');
             grid.innerHTML = '';
             let count = 0;
-            stickers.forEach((active, index) => {
+            stickers.forEach((dateValue, index) => {
                 const slot = document.createElement('div');
                 slot.className = 'sticker-slot';
-                if (active) {
-                    slot.innerHTML = `<img src="${stickerImg}" class="sticker-img">`;
+                if (dateValue > 0) {
+                    slot.innerHTML = `<img src="${stickerImg}" class="sticker-img"><span class="sticker-date">${dateValue}</span>`;
                     count++;
                 }
                 slot.onclick = () => toggleSticker(index);
                 grid.appendChild(slot);
             });
             document.getElementById('stickerCount').innerText = `${count} / 20`;
-            localStorage.setItem('son_stickers', JSON.stringify(stickers));
+            localStorage.setItem('son_stickers_v2', JSON.stringify(stickers));
             return count;
         }
 
         function toggleSticker(index) {
-            const wasActive = stickers[index];
-            stickers[index] = !stickers[index];
-            const count = renderStickers();
-
-            if (!wasActive) { // 스티커를 붙일 때만
-                document.getElementById('soundPyo').currentTime = 0;
-                document.getElementById('soundPyo').play();
-                
-                if (count === 20) {
-                    triggerCelebration();
+            if (stickers[index] === 0) {
+                const day = new Date().getDate();
+                stickers[index] = day; // 오늘 날짜 저장
+                playSound('soundPyo');
+                const count = renderStickers();
+                if (count === 20) triggerCelebration();
+            } else {
+                if(confirm("이 스티커를 취소할까요?")) {
+                    stickers[index] = 0;
+                    renderStickers();
                 }
             }
         }
 
+        // --- 임무 및 알람 로직 ---
+        function renderTasks() {
+            const list = document.getElementById('taskList');
+            list.innerHTML = '';
+            tasks.forEach((task, idx) => {
+                const li = document.createElement('li');
+                li.className = 'task-item';
+                li.innerHTML = `
+                    <div class="task-main">
+                        <input type="checkbox" ${task.done ? 'checked' : ''} onchange="toggleTask(${idx})">
+                        <span class="task-text ${task.done ? 'task-done' : ''}">${task.text}</span>
+                        <button onclick="deleteTask(${idx})" style="background:none; border:none; color:#ff6b6b; cursor:pointer;">✕</button>
+                    </div>
+                    <div class="task-alarm-settings">
+                        <span>⏰ 알람 시간:</span>
+                        <input type="time" value="${task.alarmTime || ''}" onchange="updateAlarmTime(${idx}, this.value)">
+                        <label style="cursor:pointer; display:flex; align-items:center; gap:4px;">
+                            <input type="checkbox" ${task.alarmOn ? 'checked' : ''} onchange="toggleAlarmSwitch(${idx})"> 알람켜기
+                        </label>
+                    </div>
+                `;
+                list.appendChild(li);
+            });
+            localStorage.setItem('son_tasks_v2', JSON.stringify(tasks));
+        }
+
+        function addTask() {
+            const input = document.getElementById('taskInput');
+            if (!input.value.trim()) return;
+            tasks.push({ text: input.value, done: false, alarmTime: '', alarmOn: false, alerted: false });
+            input.value = '';
+            renderTasks();
+        }
+
+        function toggleTask(idx) { tasks[idx].done = !tasks[idx].done; renderTasks(); }
+        function deleteTask(idx) { tasks.splice(idx, 1); renderTasks(); }
+        function updateAlarmTime(idx, time) { tasks[idx].alarmTime = time; tasks[idx].alerted = false; renderTasks(); }
+        function toggleAlarmSwitch(idx) { tasks[idx].alarmOn = !tasks[idx].alarmOn; renderTasks(); }
+
+        function checkAlarms() {
+            const now = new Date();
+            const currentStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+            
+            tasks.forEach((task, idx) => {
+                if (task.alarmOn && !task.done && task.alarmTime === currentStr && !task.alerted) {
+                    task.alerted = true; // 중복 울림 방지
+                    playSound('soundAlarm');
+                    alert(`⏰ 알람: [${task.text}] 임무를 수행할 시간이야!`);
+                }
+                // 시간이 지나면 alerted 리셋 (다음날을 위해)
+                if (task.alarmTime !== currentStr) task.alerted = false;
+            });
+        }
+
+        // --- 효과 및 기타 ---
+        function playSound(id) {
+            const s = document.getElementById(id);
+            if (s) { s.currentTime = 0; s.play().catch(() => {}); }
+        }
+
         function triggerCelebration() {
-            // 1. 소리 재생
-            document.getElementById('soundFanfare').play();
-            // 2. 폭죽 터뜨리기
-            var duration = 3 * 1000;
-            var end = Date.now() + duration;
-
-            (function frame() {
-                confetti({ particleCount: 5, angle: 60, spread: 55, origin: { x: 0 } });
-                confetti({ particleCount: 5, angle: 120, spread: 55, origin: { x: 1 } });
-                if (Date.now() < end) { requestAnimationFrame(frame); }
-            }());
-
-            // 3. 팝업 띄우기
-            setTimeout(() => {
-                document.getElementById('congratsModal').style.display = 'flex';
-            }, 500);
+            confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
+            document.getElementById('congratsModal').style.display = 'flex';
         }
 
-        function closeModal() {
-            document.getElementById('congratsModal').style.display = 'none';
-        }
-
-        function saveMessage() {
-            localStorage.setItem('son_momMessage', document.getElementById('momMessage').value);
-        }
-
-        function resetStickers() {
-            if(confirm("초기화할까요?")) {
-                stickers = new Array(20).fill(false);
-                renderStickers();
-            }
-        }
+        function closeModal() { document.getElementById('congratsModal').style.display = 'none'; }
+        function saveMessage() { localStorage.setItem('son_momMessage', document.getElementById('momMessage').value); }
+        function resetStickers() { if(confirm("모든 스티커를 지울까요?")) { stickers = new Array(20).fill(0); renderStickers(); } }
 
         init();
     </script>
