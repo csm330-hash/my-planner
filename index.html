@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>mune planner v33</title>
+    <title>mune planner v34</title>
     <meta name="apple-mobile-web-app-title" content="mune planner">
     <meta name="mobile-web-app-capable" content="yes">
     <script src="https://cdn.tailwindcss.com"></script>
@@ -26,7 +26,7 @@
             <div class="flex justify-between items-start">
                 <div>
                     <h1 class="text-2xl md:text-4xl font-black tracking-tighter">mune planner</h1>
-                    <p class="text-xs md:text-sm text-gray-400 font-medium mt-1">v33: 마스터 아카이브 모드</p>
+                    <p class="text-xs md:text-sm text-gray-400 font-medium mt-1">v34: 보이스 엔진 최적화 모드</p>
                 </div>
                 <div class="flex items-center gap-3">
                     <button id="voice-master" onclick="startVoiceCommand()" class="w-12 h-12 rounded-full bg-red-500 text-white shadow-lg flex items-center justify-center"><i class="fas fa-microphone"></i></button>
@@ -69,7 +69,7 @@
         function speakSchedule() {
             speechSynthesis.cancel();
             const routines = JSON.parse(localStorage.getItem(`${selectedDate}-routines`) || '[]');
-            const text = routines.map(r => `${r.time.replace(':', '시 ')}, ${r.task}`).join('. ');
+            const text = routines.map(r => `${r.time.split(':')[0]}시 ${r.time.split(':')[1] === '00' ? '' : r.time.split(':')[1] + '분'}, ${r.task}`).join('. ');
             const msg = new SpeechSynthesisUtterance(routines.length ? "디렉터님, 일정입니다. " + text : "일정이 없습니다.");
             msg.lang = 'ko-KR'; speechSynthesis.speak(msg);
         }
@@ -85,10 +85,18 @@
         }
 
         function processCommand(cmd) {
-            const text = cmd.replace(/루틴|건강|메모|추가|삭제/g, '').trim();
-            const timeMatch = text.match(/(\d+시|\d+:\d+)/);
-            const time = timeMatch ? timeMatch[0].replace('시', ':00').padStart(5, '0') : "09:00";
-            const content = text.replace(timeMatch ? timeMatch[0] : '', '').trim();
+            const korHours = {"한":1,"두":2,"세":3,"네":4,"다섯":5,"여섯":6,"일곱":7,"여덟":8,"아홉":9,"열":10,"열한":11,"열두":12};
+            let time = "09:00";
+            let content = cmd.replace(/루틴|건강|메모|추가|삭제/g, '').trim();
+
+            // 시간 추출 (숫자 8시 vs 한글 여덟시 모두 대응)
+            const timeMatch = cmd.match(/(\d+)\s*시/) || cmd.match(/([가-힣]+)\s*시/);
+            if (timeMatch) {
+                let hour = timeMatch[1];
+                if (korHours[hour]) hour = korHours[hour];
+                time = String(hour).padStart(2, '0') + ":00";
+                content = content.replace(timeMatch[0], '').trim(); // 내용에서 시간 단어 제거
+            }
 
             if (cmd.includes('추가')) {
                 if (cmd.includes('루틴')) addData('routine', { time, task: content, alarm: true, isRecurring: false });
@@ -100,7 +108,7 @@
                     localStorage.setItem(`${selectedDate}-${type}s`, JSON.stringify(filtered));
                 });
             }
-            loadAllData(); alert(`명령 실행: ${cmd}`);
+            loadAllData(); alert(`실행: ${time} ${content}`);
         }
 
         function addData(type, obj) {
@@ -160,7 +168,6 @@
                 </div>`);
             });
         }
-
         function copySection(type) { localStorage.setItem('copy-buffer', localStorage.getItem(`${selectedDate}-${type}s`)); alert("복사되었습니다."); }
         function openMultiPaste() {
             if(!localStorage.getItem('copy-buffer')) return alert("먼저 복사해주세요.");
@@ -181,7 +188,6 @@
             closeMultiPaste(); loadAllData(); alert("동기화 완료!");
         }
         function closeMultiPaste() { document.getElementById('multi-paste-modal').style.display = 'none'; }
-        
         function addNewItem(type) { 
             const data = JSON.parse(localStorage.getItem(`${selectedDate}-${type}s`) || '[]');
             data.push({ time: "09:00", task: "새 일정", habit: "새 일정", alarm: true, isRecurring: false });
@@ -190,7 +196,7 @@
         function changeDate() { selectedDate = document.getElementById('date-picker').value; loadAllData(); }
         function changeBg(color) { document.body.style.backgroundColor = color; localStorage.setItem('mune-bg', color); }
         function saveGlobal(id) { localStorage.setItem(id, document.getElementById(id).value); }
-        function exportData() { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(localStorage)], {type: "json"})); a.download = `mune_v33.json`; a.click(); }
+        function exportData() { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(localStorage)], {type: "json"})); a.download = `mune_v34.json`; a.click(); }
         function importData(input) { const reader = new FileReader(); reader.onload = (e) => { const d = JSON.parse(e.target.result); Object.keys(d).forEach(k => localStorage.setItem(k, d[k])); location.reload(); }; reader.readAsText(input.files[0]); }
         function previewImage(i) { if(i.files[0]) { const r = new FileReader(); r.onload = (e) => { const imgs = JSON.parse(localStorage.getItem('char-images') || '[]'); imgs.unshift(e.target.result); localStorage.setItem('char-images', JSON.stringify(imgs.slice(0,10))); loadAllData(); }; r.readAsDataURL(i.files[0]); } }
         function deleteImage(img) { if(confirm("삭제?")) { img.remove(); saveCurrentData(); } }
