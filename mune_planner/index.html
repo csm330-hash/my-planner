@@ -2,187 +2,246 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>일상을 기록하는 스마트 플래너</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Content Director Dashboard</title>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@400;600;700;800&display=swap');
-        body { font-family: 'Pretendard', sans-serif; background-color: #ffffff; color: #000000; -webkit-tap-highlight-color: transparent; }
-        .card { background: #ffffff; border: 1px solid #e5e7eb; padding: 1.5rem; border-radius: 16px; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05); height: 100%; }
-        .btn-tool { font-size: 0.75rem; font-weight: 700; border: 1px solid #000000; padding: 6px 12px; border-radius: 8px; cursor: pointer; transition: 0.2s; background: white; }
-        .item-row { border-bottom: 1px solid #f3f4f6; padding: 0.85rem 0; display: flex; align-items: center; gap: 0.75rem; }
-        .recurring-active { color: #6366f1 !important; font-weight: 900; }
-        .recurring-inactive { color: #d1d5db !important; }
-        textarea, input[type="date"] { border: 1px solid #e5e7eb !important; border-radius: 10px !important; padding: 10px !important; width: 100%; font-size: 16px !important; color: #000; }
-        #multi-paste-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; align-items: center; justify-content: center; padding: 1rem; }
-        .modal-content { background: white; padding: 1.5rem; border-radius: 20px; width: 100%; max-width: 400px; max-height: 85vh; overflow-y: auto; }
+        :root {
+            --bg-color: #F2E9E4;
+            --primary: #4A7C92;
+            --secondary: #D98C52;
+            --accent: #E9C46A;
+            --text-dark: #222222;
+            --white: #ffffff;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-dark);
+            font-family: 'Pretendard', sans-serif;
+            margin: 0; padding: 20px;
+            display: flex; flex-direction: column; align-items: center;
+        }
+
+        .header {
+            width: 100%; max-width: 800px;
+            display: flex; justify-content: space-between; align-items: flex-end;
+            margin-bottom: 30px; border-bottom: 3px solid var(--primary); padding-bottom: 10px;
+        }
+
+        .header h1 { margin: 0; color: var(--primary); font-size: 1.5rem; letter-spacing: -1px; }
+        .title-tag { font-size: 0.8rem; background: var(--primary); color: white; padding: 2px 8px; border-radius: 4px; }
+
+        .container {
+            width: 100%; max-width: 800px;
+            display: grid; grid-template-columns: 1fr 1.5fr; gap: 20px;
+        }
+
+        @media (max-width: 600px) { .container { grid-template-columns: 1fr; } }
+
+        .card {
+            background: var(--white); border-radius: 12px; padding: 20px;
+            box-shadow: 6px 6px 0px rgba(74, 124, 146, 0.2); border: 1.5px solid var(--primary);
+            margin-bottom: 20px;
+        }
+
+        .card-title {
+            font-weight: 800; color: var(--secondary); margin-bottom: 15px;
+            display: flex; align-items: center; gap: 8px; border-bottom: 1px solid #eee; padding-bottom: 8px;
+        }
+
+        /* --- D-Day 리스트 스타일 --- */
+        .dday-item {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 12px; padding: 10px; background: #fdfdfd;
+            border-left: 4px solid var(--accent); border-radius: 4px;
+        }
+        .dday-label { font-size: 0.85rem; font-weight: 600; color: #555; }
+        .dday-value { color: var(--secondary); font-weight: 800; font-size: 1rem; }
+
+        /* --- 업무 리스트 스타일 --- */
+        .task-list { list-style: none; padding: 0; }
+        .task-item {
+            display: flex; align-items: center; gap: 10px; margin-bottom: 10px;
+            padding: 12px; border-radius: 8px; background: #f9f9f9; border: 1px solid #eee;
+        }
+        .task-item input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--primary); }
+        .task-done { text-decoration: line-through; opacity: 0.5; }
+
+        .noti-btn {
+            background: var(--accent); border: none; padding: 10px 20px;
+            border-radius: 8px; font-weight: bold; cursor: pointer; margin-bottom: 20px;
+            box-shadow: 3px 3px 0px var(--primary);
+        }
+        
+        .add-task { display: flex; gap: 8px; margin-top: 15px; }
+        .add-task input { flex-grow: 1; border: 1px solid #ddd; border-radius: 6px; padding: 10px; }
+        .add-task button { background: var(--primary); color: white; border: none; padding: 10px 15px; border-radius: 6px; font-weight: bold; }
     </style>
 </head>
-<body class="p-4 md:p-12">
-    <div class="max-w-7xl mx-auto space-y-6 md:space-y-10">
-        <header class="flex flex-col gap-4 border-b-2 border-black pb-6">
-            <div>
-                <h1 class="text-2xl md:text-4xl font-extrabold tracking-tight">일상을 기록하는 스마트 플래너</h1>
-                <p class="text-sm md:text-lg font-medium text-gray-400 mt-1">mune 디렉터님의 소중한 기록 보관소</p>
-            </div>
-            <div class="flex flex-wrap gap-2">
-                <button onclick="copySection('routine')" class="btn-tool">루틴 복사</button>
-                <button onclick="copySection('habit')" class="btn-tool">건강 복사</button>
-                <button onclick="openMultiPaste()" class="btn-tool bg-black text-white border-black">다중 붙여넣기</button>
-                <button onclick="exportData()" class="btn-tool bg-gray-50 border-gray-200">백업</button>
-                <input type="date" id="date-picker" onchange="changeDate()" class="font-bold outline-none flex-1">
-            </div>
-        </header>
+<body>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
-            <section class="card">
-                <div class="flex justify-between items-center mb-4 text-black">
-                    <h2 class="text-xl font-bold text-black">루틴 관리</h2>
-                    <button onclick="addNewItem('routine')" class="text-xs font-bold border-b border-black text-black">+ 추가</button>
-                </div>
-                <div id="routine-list" class="space-y-1"></div>
-            </section>
-
-            <section class="card">
-                <div class="flex justify-between items-center mb-4 text-black">
-                    <h2 class="text-xl font-bold text-black">건강 관리</h2>
-                    <button onclick="addNewItem('habit')" class="text-xs font-bold border-b border-black text-black">+ 추가</button>
-                </div>
-                <div id="habit-list" class="space-y-1 mb-6"></div>
-                <div class="pt-4 border-t border-gray-100">
-                    <h3 class="text-[10px] font-bold text-gray-400 mb-2 uppercase tracking-widest">식단 기록</h3>
-                    <textarea id="meal-log" onblur="saveCurrentData()" class="h-24 resize-none text-sm text-black" placeholder="식단을 기록하세요..."></textarea>
-                </div>
-            </section>
-
-            <section class="card">
-                <h2 class="text-xl font-bold mb-4 text-black">창작 메모</h2>
-                <div class="bg-gray-50 p-4 mb-4 rounded-xl border border-gray-100 flex justify-between items-center">
-                    <div class="text-[10px] font-bold text-gray-500 uppercase">GCP 크레딧 만료일: 2026.03.10</div>
-                    <div id="d-day-val" class="text-2xl font-black text-black">D-?</div>
-                </div>
-                <textarea id="idea-note" onblur="saveGlobal('idea-note')" class="h-[300px] leading-relaxed text-sm text-black" placeholder="아이디어를 기록하세요..."></textarea>
-            </section>
+    <div class="header">
+        <div>
+            <span class="title-tag">AI VISUAL CONTENT DIRECTOR</span>
+            <h1>STRATEGIC DASHBOARD</h1>
         </div>
+        <div id="currentTime" style="font-weight: bold; color: var(--primary);"></div>
     </div>
 
-    <div id="multi-paste-modal">
-        <div class="modal-content">
-            <h3 class="text-xl font-bold mb-2">다중 붙여넣기</h3>
-            <p class="text-[10px] text-gray-500 mb-4 text-black">선택한 날짜들에 복사한 일정을 모두 추가합니다.</p>
-            <div id="date-list" class="space-y-1 mb-6 text-black"></div>
-            <div class="flex gap-2 text-black">
-                <button onclick="applyMultiPaste()" class="flex-1 bg-black text-white py-4 rounded-xl font-bold text-sm">적용하기</button>
-                <button onclick="closeMultiPaste()" class="flex-1 bg-gray-100 py-4 rounded-xl font-bold text-sm">취소</button>
+    <button class="noti-btn" onclick="requestNotiPermission()">🔔 알림 권한 활성화</button>
+
+    <div class="container">
+        <div class="column">
+            <div class="card">
+                <div class="card-title">📅 CALENDAR MILESTONES</div>
+                <div id="ddayContainer">
+                    <p style="font-size: 0.8rem; color: #888;">캘린더 데이터를 불러오는 중...</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="column">
+            <div class="card">
+                <div class="card-title">📝 TODAY'S FOCUS</div>
+                <ul class="task-list" id="taskList"></ul>
+                <div class="add-task">
+                    <input type="text" id="taskInput" placeholder="새로운 업무를 입력하세요">
+                    <button onclick="addTask()">추가</button>
+                </div>
             </div>
         </div>
     </div>
 
     <script>
-        let selectedDate = new Date().toISOString().split('T')[0];
-        window.onload = () => { document.getElementById('date-picker').value = selectedDate; loadAllData(); };
-        function changeDate() { selectedDate = document.getElementById('date-picker').value; loadAllData(); }
+        // 1. 구글 캘린더 iCal 주소를 여기에 넣으세요!
+        const ICAL_URL = "https://calendar.google.com/calendar/u/0/r?pli=1"; 
 
-        function openMultiPaste() {
-            if (!localStorage.getItem('planner-copy-buffer')) return alert("먼저 '복사' 버튼을 눌러주세요.");
-            const list = document.getElementById('date-list'); list.innerHTML = "";
-            const start = new Date();
-            for (let i = 0; i < 14; i++) {
-                const d = new Date(start); d.setDate(start.getDate() + i);
-                const ds = d.toISOString().split('T')[0];
-                const dayName = ["일", "월", "화", "수", "목", "금", "토"][d.getDay()];
-                list.insertAdjacentHTML('beforeend', `<label class="flex items-center gap-3 p-3 hover:bg-gray-50 rounded-xl cursor-pointer">
-                    <input type="checkbox" value="${ds}" class="w-5 h-5 accent-black">
-                    <span class="text-sm font-medium">${ds} (${dayName})</span></label>`);
+        // --- 알림 기능 ---
+        function requestNotiPermission() {
+            Notification.requestPermission().then(perm => {
+                if (perm === "granted") alert("알림이 활성화되었습니다.");
+            });
+        }
+
+        function sendNotification(title, msg) {
+            if (Notification.permission === "granted") {
+                new Notification(title, { body: msg });
             }
-            document.getElementById('multi-paste-modal').style.display = 'flex';
-        }
-        function closeMultiPaste() { document.getElementById('multi-paste-modal').style.display = 'none'; }
-        function applyMultiPaste() {
-            const selected = Array.from(document.querySelectorAll('#date-list input:checked')).map(el => el.value);
-            if (selected.length === 0) return alert("날짜를 선택해주세요.");
-            const buffer = JSON.parse(localStorage.getItem('planner-copy-buffer'));
-            selected.forEach(date => {
-                if (buffer.routine) localStorage.setItem(`${date}-routines`, buffer.routine);
-                if (buffer.habit) localStorage.setItem(`${date}-habits`, buffer.habit);
-            });
-            alert("일정 복사 완료!"); closeMultiPaste(); loadAllData();
         }
 
-        function copySection(type) {
-            const data = {};
-            if (type === 'routine' || type === 'all') data.routine = localStorage.getItem(`${selectedDate}-routines`);
-            if (type === 'habit' || type === 'all') data.habit = localStorage.getItem(`${selectedDate}-habits`);
-            localStorage.setItem('planner-copy-buffer', JSON.stringify(data)); alert("복사되었습니다.");
-        }
-
-        function loadAllData() {
-            ['idea-note'].forEach(id => { const val = localStorage.getItem(id); if(val) document.getElementById(id).value = val; });
-            const dayIdx = new Date(selectedDate).getDay();
-            let rData = JSON.parse(localStorage.getItem(`${selectedDate}-routines`) || '[]');
-            let hData = JSON.parse(localStorage.getItem(`${selectedDate}-habits`) || '[]');
+        // --- 구글 캘린더 파싱 및 D-Day ---
+        async function fetchCalendar() {
+            if (ICAL_URL.includes("여기에_주소")) return;
             
-            // 오늘 데이터가 없으면 마스터 목록 시도
-            if (rData.length === 0) rData = JSON.parse(localStorage.getItem(`master-day-${dayIdx}-routines`) || '[]');
-            if (hData.length === 0) hData = JSON.parse(localStorage.getItem('master-daily-habits') || '[]');
-
-            renderList('routine-list', rData, 'routine'); renderList('habit-list', hData, 'habit');
-            document.getElementById('meal-log').value = localStorage.getItem(`${selectedDate}-meal`) || "";
-            const diff = Math.ceil((new Date('2026-03-10') - new Date()) / (1000 * 60 * 60 * 24));
-            document.getElementById('d-day-val').innerText = `D-${diff}`;
+            try {
+                // CORS 문제를 해결하기 위해 프록시 서버를 경유하여 데이터를 가져옵니다.
+                const proxyUrl = "https://api.allorigins.win/get?url=" + encodeURIComponent(ICAL_URL);
+                const response = await fetch(proxyUrl);
+                const data = await response.json();
+                const icsText = data.contents;
+                
+                const events = parseICS(icsText);
+                renderDdays(events);
+            } catch (e) {
+                console.error("캘린더 로드 실패:", e);
+                document.getElementById('ddayContainer').innerHTML = "<p>캘린더를 불러올 수 없습니다.</p>";
+            }
         }
 
-        function renderList(cid, data, type) {
-            const container = document.getElementById(cid); container.innerHTML = "";
-            data.forEach(d => {
-                const text = d.task || d.habit || "내용 없음";
-                const time = (d.time === undefined || d.time === "undefined") ? (type === 'routine' ? "09:00" : "08:00") : d.time;
-                container.insertAdjacentHTML('beforeend', createItemHTML(type, Math.random(), time, text, d.checked, d.isRecurring));
+        function parseICS(icsText) {
+            const events = [];
+            const lines = icsText.split(/\r?\n/);
+            let currentEvent = null;
+
+            lines.forEach(line => {
+                if (line.startsWith("BEGIN:VEVENT")) {
+                    currentEvent = {};
+                } else if (line.startsWith("END:VEVENT")) {
+                    if (currentEvent.start && currentEvent.summary) events.push(currentEvent);
+                    currentEvent = null;
+                } else if (currentEvent) {
+                    if (line.startsWith("SUMMARY:")) currentEvent.summary = line.substring(8);
+                    if (line.startsWith("DTSTART")) {
+                        const dateMatch = line.match(/\d{8}/);
+                        if (dateMatch) currentEvent.start = dateMatch[0];
+                    }
+                }
+            });
+            return events;
+        }
+
+        function renderDdays(events) {
+            const container = document.getElementById('ddayContainer');
+            container.innerHTML = '';
+            const now = new Date();
+            now.setHours(0,0,0,0);
+
+            // 미래 일정만 필터링하여 정렬
+            const futureEvents = events
+                .map(ev => {
+                    const y = ev.start.substring(0,4), m = ev.start.substring(4,6), d = ev.start.substring(6,8);
+                    const target = new Date(y, m-1, d);
+                    const diff = Math.ceil((target - now) / (1000 * 60 * 60 * 24));
+                    return { summary: ev.summary, diff: diff };
+                })
+                .filter(ev => ev.diff >= 0)
+                .sort((a, b) => a.diff - b.diff)
+                .slice(0, 5); // 상위 5개만 표시
+
+            if (futureEvents.length === 0) {
+                container.innerHTML = "<p>예정된 일정이 없습니다.</p>";
+                return;
+            }
+
+            futureEvents.forEach(ev => {
+                const div = document.createElement('div');
+                div.className = 'dday-item';
+                div.innerHTML = `
+                    <span class="dday-label">${ev.summary}</span>
+                    <span class="dday-value">${ev.diff === 0 ? "D-Day" : "D-" + ev.diff}</span>
+                `;
+                container.appendChild(div);
             });
         }
 
-        function createItemHTML(type, id, time, text, checked, isRecur) {
-            return `<div class="item-row text-black">
-                <i class="fas fa-redo text-[10px] ${isRecur?'recurring-active':'recurring-inactive'} cursor-pointer" onclick="toggleRecur(this)"></i>
-                ${type==='habit'?`<input type="checkbox" ${checked?'checked':''} onchange="saveCurrentData()" class="w-5 h-5 accent-black">`:''}
-                <span class="text-xs font-black w-12 text-black" contenteditable="true" onblur="saveCurrentData()">${time}</span>
-                <span class="flex-1 font-semibold text-sm text-black" contenteditable="true" onblur="saveCurrentData()">${text}</span>
-                <i class="fas fa-times text-[10px] text-gray-300 cursor-pointer" onclick="this.closest('.item-row').remove(); saveCurrentData();"></i>
-            </div>`;
-        }
+        // --- 업무 리스트 ---
+        let tasks = JSON.parse(localStorage.getItem('director_tasks')) || [];
 
-        function addNewItem(type) {
-            const time = type === 'routine' ? "09:00" : "08:00";
-            document.getElementById(type + '-list').insertAdjacentHTML('beforeend', createItemHTML(type, Math.random(), time, "새 항목", false, false));
-            saveCurrentData();
-        }
-
-        function toggleRecur(el) { el.classList.toggle('recurring-active'); el.classList.toggle('recurring-inactive'); saveCurrentData(); }
-
-        function saveCurrentData() {
-            const dayIdx = new Date(selectedDate).getDay();
-            const routines = []; document.querySelectorAll('#routine-list .item-row').forEach(row => {
-                const spans = row.querySelectorAll('span'); routines.push({ time: spans[0].innerText, task: spans[1].innerText, isRecurring: row.querySelector('.recurring-icon')?.classList.contains('recurring-active') });
+        function renderTasks() {
+            const list = document.getElementById('taskList');
+            list.innerHTML = '';
+            tasks.forEach((t, i) => {
+                const li = document.createElement('li');
+                li.className = 'task-item';
+                li.innerHTML = `
+                    <input type="checkbox" ${t.done ? 'checked' : ''} onchange="toggleTask(${i})">
+                    <span class="${t.done ? 'task-done' : ''}">${t.text}</span>
+                `;
+                list.appendChild(li);
             });
-            localStorage.setItem(`${selectedDate}-routines`, JSON.stringify(routines));
-            localStorage.setItem(`master-day-${dayIdx}-routines`, JSON.stringify(routines.filter(r => r.isRecurring)));
-
-            const habits = []; document.querySelectorAll('#habit-list .item-row').forEach(row => {
-                const spans = row.querySelectorAll('span'); habits.push({ time: spans[0].innerText, habit: spans[1].innerText, checked: row.querySelector('input')?.checked || false, isRecurring: row.querySelector('.recurring-icon')?.classList.contains('recurring-active') });
-            });
-            localStorage.setItem(`${selectedDate}-habits`, JSON.stringify(habits));
-            localStorage.setItem('master-daily-habits', JSON.stringify(habits.filter(h => h.isRecurring)));
-            localStorage.setItem(`${selectedDate}-meal`, document.getElementById('meal-log').value);
+            localStorage.setItem('director_tasks', JSON.stringify(tasks));
         }
 
-        function saveGlobal(id) { localStorage.setItem(id, document.getElementById(id).value || document.getElementById(id).innerText); }
-        function exportData() {
-            const data = JSON.stringify(localStorage, null, 2);
-            const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([data], {type: "application/json"}));
-            a.download = `planner_backup.json`; a.click();
+        function addTask() {
+            const input = document.getElementById('taskInput');
+            if (!input.value) return;
+            tasks.push({ text: input.value, done: false });
+            input.value = '';
+            renderTasks();
         }
-        function askNotificationPermission() { Notification.requestPermission(); }
+
+        function toggleTask(i) {
+            tasks[i].done = !tasks[i].done;
+            renderTasks();
+        }
+
+        // 초기화
+        setInterval(() => {
+            document.getElementById('currentTime').innerText = new Date().toLocaleTimeString();
+        }, 1000);
+
+        fetchCalendar();
+        renderTasks();
     </script>
 </body>
 </html>
