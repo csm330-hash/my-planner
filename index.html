@@ -3,17 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>mune planner v31</title>
+    <title>mune planner v32</title>
     <meta name="apple-mobile-web-app-title" content="mune planner">
     <meta name="mobile-web-app-capable" content="yes">
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@400;600;700;800&display=swap');
-        body { font-family: 'Pretendard', sans-serif; transition: background 0.3s; background-color: #ffffff; color: #000; }
+        body { font-family: 'Pretendard', sans-serif; transition: background 0.3s; background-color: #ffffff; color: #000; -webkit-tap-highlight-color: transparent; }
         .card { background: rgba(255,255,255,0.95); backdrop-filter: blur(10px); border: 1px solid #e5e7eb; padding: 1.5rem; border-radius: 24px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05); }
         .btn-tool { font-size: 0.7rem; font-weight: 700; border: 1px solid #000; padding: 6px 12px; border-radius: 8px; background: white; cursor: pointer; }
         .item-row { border-bottom: 1px solid #f3f4f6; padding: 0.8rem 0; display: flex; align-items: center; gap: 0.75rem; }
+        .alarm-on { color: #ef4444 !important; }
         #image-gallery img { width: 65px; height: 65px; border-radius: 14px; object-fit: cover; border: 1px solid #eee; }
     </style>
 </head>
@@ -23,15 +24,16 @@
             <div class="flex justify-between items-start">
                 <div>
                     <h1 class="text-2xl md:text-4xl font-black tracking-tighter">mune planner</h1>
-                    <p class="text-xs md:text-sm text-gray-400 font-medium mt-1">디렉터님의 창의적 아카이브 v31</p>
+                    <p class="text-xs md:text-sm text-gray-400 font-medium mt-1">v32: 보이스 컨트롤 디렉터 모드</p>
                 </div>
                 <div class="flex items-center gap-3">
-                    <button id="alarm-btn" onclick="toggleAlarm()" class="btn-tool bg-gray-100"><i class="fas fa-bell-slash"></i> 알람끄기</button>
+                    <button id="voice-master" onclick="startVoiceCommand()" class="w-12 h-12 rounded-full bg-red-500 text-white shadow-lg flex items-center justify-center animate-bounce-slow"><i class="fas fa-microphone"></i></button>
                     <input type="color" id="bg-color" onchange="changeBg(this.value)" class="w-8 h-8 rounded-full border-none cursor-pointer">
                 </div>
             </div>
             <div class="flex flex-wrap gap-2">
-                <button onclick="speakSchedule()" class="btn-tool bg-yellow-50 border-yellow-200"><i class="fas fa-volume-up text-yellow-600"></i> 일정읽기</button>
+                <button onclick="speakSchedule()" class="btn-tool bg-yellow-50 border-yellow-200">일정읽기</button>
+                <button onclick="stopSpeaking()" class="btn-tool border-gray-300 text-gray-400">정지</button>
                 <button onclick="exportData()" class="btn-tool">백업</button>
                 <button onclick="document.getElementById('import-file').click()" class="btn-tool border-dashed">가져오기</button>
                 <input type="file" id="import-file" style="display:none" onchange="importData(this)" accept=".json">
@@ -48,135 +50,178 @@
             <section class="card">
                 <div class="flex justify-between items-center mb-4"><h2 class="text-lg font-extrabold">건강 & 식단</h2><button onclick="addNewItem('habit')" class="text-xs font-bold border-b-2 border-black">+ 추가</button></div>
                 <div id="habit-list" class="mb-4"></div>
-                <textarea id="meal-log" onblur="saveCurrentData()" class="w-full h-24 p-4 text-sm bg-gray-50 border-none rounded-2xl" placeholder="오늘의 식단 기록..."></textarea>
+                <textarea id="meal-log" onblur="saveCurrentData()" class="w-full h-24 p-4 text-sm bg-gray-50 border-none rounded-2xl" placeholder="오늘의 식단..."></textarea>
             </section>
 
             <section class="card">
                 <div class="flex justify-between items-center mb-4">
                     <h2 class="text-lg font-extrabold">창작 메모</h2>
-                    <div class="flex gap-2">
-                        <button onclick="startSTT()" class="text-sm text-red-500"><i class="fas fa-microphone"></i></button>
-                        <button onclick="document.getElementById('char-upload').click()" class="text-xs font-bold border-b-2 border-black">+ 캐릭터</button>
-                    </div>
+                    <button onclick="document.getElementById('char-upload').click()" class="text-xs font-bold border-b-2 border-black">+ 캐릭터</button>
                 </div>
                 <input type="file" id="char-upload" style="display:none" onchange="previewImage(this)" accept="image/*">
                 <div id="image-gallery" class="flex gap-2 overflow-x-auto pb-3 mb-3 min-h-[70px]"></div>
-                <div class="bg-gray-100 p-3 mb-4 rounded-xl flex justify-between items-center">
-                    <span class="text-[10px] font-bold text-gray-500">GCP 만료: 2026.03.10</span>
-                    <span id="d-day-val" class="text-xl font-black">D-?</span>
+                <div class="bg-gray-100 p-3 mb-4 rounded-xl flex justify-between items-center text-[10px] font-bold">
+                    <span>GCP 만료: 2026.03.10</span>
+                    <span id="d-day-val" class="text-xl font-black text-black">D-?</span>
                 </div>
-                <textarea id="idea-note" onblur="saveGlobal('idea-note')" class="w-full h-[180px] p-4 text-sm bg-gray-50 border-none rounded-2xl leading-relaxed" placeholder="아이디어를 말씀하시거나 적으세요..."></textarea>
+                <textarea id="idea-note" onblur="saveGlobal('idea-note')" class="w-full h-[180px] p-4 text-sm bg-gray-50 border-none rounded-2xl leading-relaxed" placeholder="루미, 얼터 아이디어 기록..."></textarea>
             </section>
         </div>
     </div>
 
     <script>
-        // 한국 시간 기준 날짜 설정
         let selectedDate = new Date().toLocaleDateString('sv-SE');
-        let alarmEnabled = false;
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
         window.onload = () => { document.getElementById('date-picker').value = selectedDate; loadAllData(); setInterval(checkAlarm, 30000); };
 
-        function toggleAlarm() { 
-            alarmEnabled = !alarmEnabled;
-            document.getElementById('alarm-btn').innerHTML = alarmEnabled ? '<i class="fas fa-bell text-red-500"></i> 알람켜짐' : '<i class="fas fa-bell-slash"></i> 알람끄기';
-            if(alarmEnabled) audioCtx.resume();
+        // [음성 읽기 및 정지]
+        function speakSchedule() {
+            speechSynthesis.cancel();
+            const routines = JSON.parse(localStorage.getItem(`${selectedDate}-routines`) || '[]');
+            const text = routines.map(r => {
+                const cleanTime = r.time.replace(':', '시 ').replace('00분', '');
+                return `${cleanTime}, ${r.task}`;
+            }).join('. ');
+            const msg = new SpeechSynthesisUtterance(routines.length ? "디렉터님, 일정입니다. " + text : "일정이 없습니다.");
+            msg.lang = 'ko-KR'; speechSynthesis.speak(msg);
         }
+        function stopSpeaking() { speechSynthesis.cancel(); }
+
+        // [마스터 음성 제어]
+        function startVoiceCommand() {
+            const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+            recognition.lang = 'ko-KR';
+            recognition.onstart = () => document.getElementById('voice-master').classList.replace('bg-red-500', 'bg-green-500');
+            recognition.onresult = (e) => {
+                const cmd = e.results[0][0].transcript;
+                processCommand(cmd);
+            };
+            recognition.onend = () => document.getElementById('voice-master').classList.replace('bg-green-500', 'bg-red-500');
+            recognition.start();
+        }
+
+        function processCommand(cmd) {
+            if (cmd.includes('추가')) {
+                const text = cmd.replace(/루틴|건강|메모|추가/g, '').trim();
+                if (cmd.includes('루틴')) addVoiceItem('routine', text);
+                else if (cmd.includes('건강')) addVoiceItem('habit', text);
+                else if (cmd.includes('메모')) { document.getElementById('idea-note').value += ' ' + text; saveGlobal('idea-note'); }
+            } else if (cmd.includes('삭제')) {
+                const text = cmd.replace(/루틴|건강|삭제/g, '').trim();
+                deleteVoiceItem(text);
+            }
+            alert(`명령 인식: ${cmd}`);
+        }
+
+        function addVoiceItem(type, text) {
+            const timeMatch = text.match(/(\d+시|\d+:\d+)/);
+            const time = timeMatch ? timeMatch[0].replace('시', ':00') : "09:00";
+            const content = text.replace(timeMatch ? timeMatch[0] : '', '').trim();
+            const data = JSON.parse(localStorage.getItem(`${selectedDate}-${type}s`) || '[]');
+            data.push({ time, task: content, habit: content, checked: false, alarm: true });
+            localStorage.setItem(`${selectedDate}-${type}s`, JSON.stringify(data));
+            loadAllData();
+        }
+
+        function deleteVoiceItem(text) {
+            ['routine', 'habit'].forEach(type => {
+                const data = JSON.parse(localStorage.getItem(`${selectedDate}-${type}s`) || '[]');
+                const filtered = data.filter(item => !(item.task || item.habit).includes(text));
+                localStorage.setItem(`${selectedDate}-${type}s`, JSON.stringify(filtered));
+            });
+            loadAllData();
+        }
+
+        // [개별 알람 로직]
         function checkAlarm() {
-            if(!alarmEnabled) return;
             const now = new Date();
             const currentTime = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
             const routines = JSON.parse(localStorage.getItem(`${selectedDate}-routines`) || '[]');
-            if(routines.some(r => r.time === currentTime)) playBell();
+            const habits = JSON.parse(localStorage.getItem(`${selectedDate}-habits`) || '[]');
+            [...routines, ...habits].forEach(item => {
+                if(item.alarm && item.time === currentTime) playBell();
+            });
         }
         function playBell() {
             const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
             osc.connect(gain); gain.connect(audioCtx.destination);
-            osc.type = 'sine'; osc.frequency.setValueAtTime(880, audioCtx.currentTime);
+            osc.frequency.setValueAtTime(880, audioCtx.currentTime);
             gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
             osc.start(); osc.stop(audioCtx.currentTime + 0.5);
         }
 
-        function startSTT() {
-            const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-            recognition.lang = 'ko-KR';
-            recognition.onstart = () => document.querySelector('.fa-microphone').classList.add('animate-pulse');
-            recognition.onresult = (e) => {
-                const text = e.results[0][0].transcript;
-                document.getElementById('idea-note').value += (document.getElementById('idea-note').value ? ' ' : '') + text;
-                saveGlobal('idea-note');
-            };
-            recognition.onend = () => document.querySelector('.fa-microphone').classList.remove('animate-pulse');
-            recognition.start();
+        function toggleItemAlarm(el, type, index) {
+            const data = JSON.parse(localStorage.getItem(`${selectedDate}-${type}s`));
+            data[index].alarm = !data[index].alarm;
+            localStorage.setItem(`${selectedDate}-${type}s`, JSON.stringify(data));
+            el.classList.toggle('alarm-on');
         }
 
-        // 시간순 자동 정렬 로직 (루틴 및 건강관리 공통)
+        // --- 공통 기능 ---
         function saveCurrentData() {
-            const r = []; document.querySelectorAll('#routine-list .item-row').forEach(row => { const s = row.querySelectorAll('span'); r.push({ time: s[0].innerText, task: s[1].innerText }); });
+            const r = []; document.querySelectorAll('#routine-list .item-row').forEach(row => { 
+                const s = row.querySelectorAll('span');
+                r.push({ time: s[0].innerText, task: s[1].innerText, alarm: row.querySelector('.fa-bell').classList.contains('alarm-on') });
+            });
             r.sort((a, b) => a.time.localeCompare(b.time));
             localStorage.setItem(`${selectedDate}-routines`, JSON.stringify(r));
             
-            const h = []; document.querySelectorAll('#habit-list .item-row').forEach(row => { const s = row.querySelectorAll('span'); h.push({ time: s[0].innerText, habit: s[1].innerText, checked: row.querySelector('input')?.checked || false }); });
+            const h = []; document.querySelectorAll('#habit-list .item-row').forEach(row => { 
+                const s = row.querySelectorAll('span');
+                h.push({ time: s[0].innerText, habit: s[1].innerText, checked: row.querySelector('input')?.checked || false, alarm: row.querySelector('.fa-bell').classList.contains('alarm-on') });
+            });
             h.sort((a, b) => a.time.localeCompare(b.time));
             localStorage.setItem(`${selectedDate}-habits`, JSON.stringify(h));
-            
             localStorage.setItem(`${selectedDate}-meal`, document.getElementById('meal-log').value);
-            if(event?.type === 'blur') { renderListAfterSort(); }
-        }
-        function renderListAfterSort() {
-            renderList('routine-list', JSON.parse(localStorage.getItem(`${selectedDate}-routines`) || '[]'), 'routine');
-            renderList('habit-list', JSON.parse(localStorage.getItem(`${selectedDate}-habits`) || '[]'), 'habit');
+            if(event?.type === 'blur') loadAllData();
         }
 
-        function changeBg(color) { document.body.style.backgroundColor = color; localStorage.setItem('mune-bg', color); }
-        function speakSchedule() {
-            const routines = JSON.parse(localStorage.getItem(`${selectedDate}-routines`) || '[]');
-            const text = routines.length ? routines.map(r => `${r.time}시, ${r.task}`).join('. ') : "일정이 없습니다.";
-            const msg = new SpeechSynthesisUtterance("디렉터님, 오늘의 일정입니다. " + text);
-            msg.lang = 'ko-KR'; speechSynthesis.speak(msg);
-        }
-        function changeDate() { selectedDate = document.getElementById('date-picker').value; loadAllData(); }
         function loadAllData() {
             document.body.style.backgroundColor = localStorage.getItem('mune-bg') || '#ffffff';
-            document.getElementById('bg-color').value = localStorage.getItem('mune-bg') || '#ffffff';
             document.getElementById('idea-note').value = localStorage.getItem('idea-note') || "";
+            renderList('routine-list', JSON.parse(localStorage.getItem(`${selectedDate}-routines`) || '[]'), 'routine');
+            renderList('habit-list', JSON.parse(localStorage.getItem(`${selectedDate}-habits`) || '[]'), 'habit');
+            document.getElementById('meal-log').value = localStorage.getItem(`${selectedDate}-meal`) || "";
             const imgs = JSON.parse(localStorage.getItem('char-images') || '[]');
             document.getElementById('image-gallery').innerHTML = imgs.map(src => `<img src="${src}" onclick="deleteImage(this)">`).join('');
-            renderListAfterSort();
             const diff = Math.ceil((new Date('2026-03-10') - new Date()) / (1000 * 60 * 60 * 24));
             document.getElementById('d-day-val').innerText = `D-${diff}`;
         }
+
         function renderList(cid, data, type) {
             const container = document.getElementById(cid); container.innerHTML = "";
-            data.forEach(d => container.insertAdjacentHTML('beforeend', createItemHTML(type, d.time || "09:00", d.task || d.habit || "내용 없음", d.checked)));
-        }
-        function createItemHTML(type, time, text, checked) {
-            return `<div class="item-row">
-                ${type==='habit'?`<input type="checkbox" ${checked?'checked':''} onchange="saveCurrentData()" class="w-5 h-5 accent-black">`:''}
-                <span class="text-xs font-black w-12" contenteditable="true" onblur="saveCurrentData()">${time}</span>
-                <span class="flex-1 font-semibold text-sm" contenteditable="true" onblur="saveCurrentData()">${text}</span>
-                <i class="fas fa-times text-[10px] text-gray-300 cursor-pointer" onclick="this.closest('.item-row').remove(); saveCurrentData();"></i>
-            </div>`;
+            data.forEach((d, idx) => {
+                const html = `<div class="item-row">
+                    <i class="fas fa-bell text-[10px] cursor-pointer ${d.alarm?'alarm-on':''}" onclick="toggleItemAlarm(this, '${type}', ${idx})"></i>
+                    ${type==='habit'?`<input type="checkbox" ${d.checked?'checked':''} onchange="saveCurrentData()" class="w-5 h-5 accent-black">`:''}
+                    <span class="text-xs font-black w-12" contenteditable="true" onblur="saveCurrentData()">${d.time}</span>
+                    <span class="flex-1 font-semibold text-sm" contenteditable="true" onblur="saveCurrentData()">${d.task || d.habit}</span>
+                    <i class="fas fa-times text-[10px] text-gray-300 cursor-pointer" onclick="this.closest('.item-row').remove(); saveCurrentData();"></i>
+                </div>`;
+                container.insertAdjacentHTML('beforeend', html);
+            });
         }
         function addNewItem(type) {
-            document.getElementById(type + '-list').insertAdjacentHTML('beforeend', createItemHTML(type, type==='routine'?"09:00":"08:00", "새 항목", false));
-            saveCurrentData();
+            const data = JSON.parse(localStorage.getItem(`${selectedDate}-${type}s`) || '[]');
+            data.push({ time: "09:00", task: "새 일정", habit: "새 일정", alarm: true, checked: false });
+            localStorage.setItem(`${selectedDate}-${type}s`, JSON.stringify(data));
+            loadAllData();
         }
+        function changeDate() { selectedDate = document.getElementById('date-picker').value; loadAllData(); }
+        function changeBg(color) { document.body.style.backgroundColor = color; localStorage.setItem('mune-bg', color); }
         function saveGlobal(id) { localStorage.setItem(id, document.getElementById(id).value); }
         function exportData() {
             const data = JSON.stringify(localStorage, null, 2);
             const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([data], {type: "application/json"}));
-            a.download = `mune_planner_backup.json`; a.click();
+            a.download = `mune_planner_v32_backup.json`; a.click();
         }
         function importData(input) {
             const file = input.files[0]; const reader = new FileReader();
             reader.onload = function(e) {
-                try {
-                    const data = JSON.parse(e.target.result);
-                    Object.keys(data).forEach(key => localStorage.setItem(key, data[key]));
-                    alert("불러오기 완료!"); location.reload();
-                } catch (err) { alert("파일 오류!"); }
+                const data = JSON.parse(e.target.result);
+                Object.keys(data).forEach(k => localStorage.setItem(k, data[k]));
+                alert("불러오기 완료!"); location.reload();
             };
             reader.readAsText(file);
         }
@@ -192,9 +237,9 @@
                 reader.readAsDataURL(input.files[0]);
             }
         }
-        function deleteImage(img) { if(confirm("삭제할까요?")) { img.remove(); const imgs = Array.from(document.querySelectorAll('#image-gallery img')).map(i => i.src); localStorage.setItem('char-images', JSON.stringify(imgs)); } }
+        function deleteImage(img) { if(confirm("삭제?")) { img.remove(); saveCurrentData(); } }
     </script>
 </body>
 </html>
-</html>
+
 
