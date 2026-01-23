@@ -3,34 +3,48 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>mune planner v54</title>
+    <title>mune planner v55</title>
     <style>
         :root { --bg-color: #a2c2e1; --card-bg: #ffffff; }
         body { background-color: var(--bg-color); font-family: 'Pretendard', sans-serif; margin: 0; padding: 20px; transition: background 0.3s; }
         
-        /* 기존 스타일 유지 */
+        /* 헤더 & 유틸리티 바 */
         .header { width: 100%; max-width: 1200px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: flex-end; }
         .header h1 { font-size: 2.2rem; margin: 0; font-weight: 900; }
         .util-bar { width: 100%; max-width: 1200px; background: white; border-radius: 10px; padding: 10px; margin-bottom: 20px; display: flex; gap: 8px; flex-wrap: wrap; border: 1.5px solid #000; box-shadow: 2.5px 2.5px 0px #000; align-items: center; }
         .util-btn { border: 1px solid #000; padding: 6px 12px; border-radius: 8px; background: #fff; font-weight: bold; cursor: pointer; font-size: 0.85rem; }
         .util-btn.black { background: #000; color: #fff; }
+
+        /* 시간 정보 */
         .time-info { margin-left: auto; display: flex; align-items: center; gap: 10px; font-weight: 900; }
         #currentDateInput { border: 1px solid #ccc; background: #f0f0f0; font-weight: 900; cursor: pointer; padding: 5px; border-radius: 8px; outline: none; }
+
+        /* 레이아웃 & 카드 */
         .main-layout { display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 20px; width: 100%; max-width: 1200px; margin: 0 auto; }
         .card { background: var(--card-bg); border-radius: 30px; padding: 25px; box-shadow: 0 10px 20px rgba(0,0,0,0.05); min-height: 450px; }
+        
+        /* 리스트 항목 스타일 (삭제 버튼 포함) */
         .list-item { display: flex; align-items: center; gap: 8px; padding: 10px 0; border-bottom: 1px solid #eee; transition: 0.3s; }
         .list-item.completed { opacity: 0.4; }
         .list-item.completed .text-input { text-decoration: line-through; }
+
         .icon-btn { cursor: pointer; font-size: 1.1rem; opacity: 0.3; transition: 0.2s; }
         .icon-btn.active { opacity: 1; }
         .icon-btn.alarm.active { color: #f39c12; }
         .icon-btn.check.active { color: #2ecc71; opacity: 1; }
+
+        /* [수정] 삭제 버튼 스타일 - 더 뚜렷하게 */
+        .del-btn { cursor: pointer; color: #ff6666; font-weight: bold; font-size: 1.2rem; padding: 0 5px; opacity: 0.5; transition: 0.2s; }
+        .del-btn:hover { opacity: 1; }
+
         .time-input { border: none; font-weight: bold; width: 55px; outline: none; background: transparent; font-size: 1rem; }
         .text-input { border: none; flex-grow: 1; outline: none; background: transparent; font-size: 1rem; color: #333; }
         .voice-btn { background: #ffcc00; border: none; padding: 5px 12px; border-radius: 20px; font-weight: bold; cursor: pointer; font-size: 0.8rem; }
     </style>
 </head>
-<body onclick="unlockAudio()"> <div class="header">
+<body onclick="unlockAudio()">
+
+    <div class="header">
         <div>
             <h1>mune planner</h1>
             <div class="subtitle" style="font-weight:bold;">MUNE Professional Dashboard</div>
@@ -77,7 +91,7 @@
                 <span style="font-size:1.3rem; font-weight:bold;">💡 창작 메모</span>
                 <button class="voice-btn" onclick="startVoice('idea')">🎤 기록</button>
             </div>
-            <div id="gcp-box" style="background:#f0f4f8; padding:15px; border-radius:15px; margin-bottom:15px; display:flex; justify-content:space-between; font-weight:900;">
+            <div style="background:#f0f4f8; padding:15px; border-radius:15px; margin-bottom:15px; display:flex; justify-content:space-between; font-weight:900;">
                 <span style="font-size:0.9rem;">GCP 만료 (3/10)</span>
                 <span id="gcp-dday">D-46</span>
             </div>
@@ -89,51 +103,23 @@
 
     <script>
         let isAudioUnlocked = false;
+        let ringedAlarms = new Set();
 
-        // [핵심] 사운드 잠금 해제 함수
+        // 사운드 잠금 해제
         function unlockAudio() {
             if (isAudioUnlocked) return;
             const sound = document.getElementById('alarmSound');
-            sound.play().then(() => {
-                sound.pause(); // 잠깐 틀었다가 바로 멈춤 (권한만 획득)
-                sound.currentTime = 0;
-                isAudioUnlocked = true;
-                console.log("사운드 권한 획득 완료!");
-            }).catch(e => console.log("아직 터치가 필요합니다."));
+            sound.play().then(() => { sound.pause(); sound.currentTime = 0; isAudioUnlocked = true; }).catch(e => {});
         }
 
-        function testSound() {
-            const sound = document.getElementById('alarmSound');
-            sound.play();
-            alert("소리가 들리시나요? 들린다면 알람 준비 완료!");
-        }
+        function testSound() { document.getElementById('alarmSound').play(); alert("소리가 들리면 알람 준비 완료!"); }
 
         function playAlarm(task) {
-            const sound = document.getElementById('alarmSound');
-            sound.play().catch(() => {
-                alert(`[무음알림] 🔔 ${task} 시간입니다! (화면을 클릭해 소리를 켜주세요)`);
-            });
-            if (isAudioUnlocked) alert(`🔔 알림: ${task} 시간입니다!`);
+            document.getElementById('alarmSound').play().catch(() => {});
+            alert(`🔔 알림: ${task} 시간입니다!`);
         }
 
-        // 기존 시간 체크 및 업데이트 로직 (유지)
-        let ringedAlarms = new Set();
-        function checkAlarms(currentTimeStr) {
-            document.querySelectorAll('.list-item').forEach((item, index) => {
-                const alarmBtn = item.querySelector('.icon-btn.alarm');
-                const timeVal = item.querySelector('.time-input').value;
-                const taskName = item.querySelector('.text-input').value;
-                if (alarmBtn.classList.contains('active') && timeVal === currentTimeStr) {
-                    const alarmId = `${timeVal}-${taskName}-${index}`;
-                    if (!ringedAlarms.has(alarmId)) {
-                        playAlarm(taskName);
-                        ringedAlarms.add(alarmId);
-                    }
-                }
-            });
-            if (currentTimeStr.endsWith(':59')) ringedAlarms.clear();
-        }
-
+        // [복구] 항목 추가 (삭제 버튼 ✕ 확실히 포함)
         function addRow(target, time="09:00", text="", repeat=false, alarm=false, completed=false) {
             const list = document.getElementById(`${target}-list`);
             const div = document.createElement('div');
@@ -144,7 +130,8 @@
                 <span class="icon-btn alarm ${alarm?'active':''}" onclick="this.classList.toggle('active'); unlockAudio();">🔔</span>
                 <input type="text" class="time-input" value="${time}">
                 <input type="text" class="text-input" value="${text}" placeholder="내용 입력">
-                <span onclick="this.parentElement.remove()" style="cursor:pointer; color:#ccc;">✕</span>`;
+                <span class="del-btn" onclick="this.parentElement.remove()">✕</span>
+            `;
             list.appendChild(div);
         }
 
@@ -153,31 +140,81 @@
             btn.parentElement.classList.toggle('completed');
         }
 
+        // [수정] 음성 인식 로직 - '삭제' 명령어 처리 강화
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        const recognition = new SpeechRecognition();
+        recognition.lang = 'ko-KR';
+
+        function startVoice(target) {
+            recognition.onresult = (event) => {
+                let transcript = event.results[0][0].transcript.trim();
+                
+                // 삭제 명령어가 포함된 경우
+                if (transcript.includes("삭제") || transcript.includes("지워") || transcript.includes("취소")) {
+                    if (target === 'idea') {
+                        document.getElementById('idea-text').value = "";
+                        alert("메모를 비웠습니다.");
+                    } else {
+                        const list = document.getElementById(`${target}-list`);
+                        if (list.lastElementChild) {
+                            list.lastElementChild.remove();
+                            alert("마지막 항목을 삭제했습니다.");
+                        }
+                    }
+                    return; // 항목 추가를 하지 않고 종료
+                }
+
+                // 일반 입력 로직
+                if (target === 'idea') {
+                    const fillers = ["음", "어", "그니까", "있잖아"];
+                    fillers.forEach(f => transcript = transcript.replace(f, ""));
+                    document.getElementById('idea-text').value += "📌 " + transcript.trim() + "\n";
+                } else {
+                    const timeMatch = transcript.match(/(\d+)\s*시\s*(?:(\d+)\s*분)?/);
+                    let hh = "09", mm = "00", task = transcript;
+                    if (timeMatch) {
+                        hh = timeMatch[1].padStart(2, '0');
+                        mm = (timeMatch[2] || "00").padStart(2, '0');
+                        task = transcript.replace(timeMatch[0], "").trim();
+                    }
+                    addRow(target, `${hh}:${mm}`, task);
+                }
+            };
+            recognition.start();
+        }
+
+        function checkAlarms(currentTimeStr) {
+            document.querySelectorAll('.list-item').forEach((item, index) => {
+                const alarmBtn = item.querySelector('.icon-btn.alarm');
+                const timeVal = item.querySelector('.time-input').value;
+                const taskName = item.querySelector('.text-input').value;
+                if (alarmBtn.classList.contains('active') && timeVal === currentTimeStr) {
+                    const alarmId = `${timeVal}-${taskName}-${index}`;
+                    if (!ringedAlarms.has(alarmId)) { playAlarm(taskName); ringedAlarms.add(alarmId); }
+                }
+            });
+            if (currentTimeStr.endsWith(':59')) ringedAlarms.clear();
+        }
+
         function updateDisplay() {
             const now = new Date();
             const seoulNow = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Seoul' }));
             const currentTimeStr = `${String(seoulNow.getHours()).padStart(2, '0')}:${String(seoulNow.getMinutes()).padStart(2, '0')}`;
             document.getElementById('clock').innerText = seoulNow.toLocaleTimeString('ko-KR', { hour12: false });
-            
-            if(!document.getElementById('currentDateInput').value) {
-                document.getElementById('currentDateInput').value = seoulNow.toISOString().split('T')[0];
-            }
+            if(!document.getElementById('currentDateInput').value) document.getElementById('currentDateInput').value = seoulNow.toISOString().split('T')[0];
             const gcpDate = new Date('2026-03-10T00:00:00');
             const diff = Math.ceil((gcpDate - seoulNow.setHours(0,0,0,0)) / (1000*60*60*24));
             document.getElementById('gcp-dday').innerText = `D-${diff}`;
             checkAlarms(currentTimeStr);
         }
 
-        // 백업 및 기타 유틸리티 (유지)
+        // 백업/가져오기
         function exportData() {
             const data = {
                 routine: Array.from(document.querySelectorAll('#routine-list .list-item')).map(item => ({
-                    time: item.querySelector('.time-input').value,
-                    text: item.querySelector('.text-input').value,
-                    alarm: item.querySelector('.icon-btn.alarm').classList.contains('active')
+                    time: item.querySelector('.time-input').value, text: item.querySelector('.text-input').value, alarm: item.querySelector('.icon-btn.alarm').classList.contains('active')
                 })),
-                idea: document.getElementById('idea-text').value,
-                bgColor: document.body.style.backgroundColor
+                idea: document.getElementById('idea-text').value, bgColor: document.body.style.backgroundColor
             };
             const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
             const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
@@ -196,17 +233,12 @@
             reader.readAsText(file);
         }
 
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        const recognition = new SpeechRecognition(); recognition.lang = 'ko-KR';
-        function startVoice(target) {
-            recognition.onresult = (event) => {
-                let transcript = event.results[0][0].transcript;
-                if (target === 'idea') document.getElementById('idea-text').value += "📌 " + transcript + "\n";
-                else {
-                    const timeMatch = transcript.match(/(\d+)\s*시\s*(?:(\d+)\s*분)?/);
-                    let hh = "09", mm = "00", task = transcript;
-                    if (timeMatch) { hh = timeMatch
-
+        setInterval(updateDisplay, 1000);
+        updateDisplay();
+        window.onload = () => { if(document.getElementById('routine-list').children.length === 0) addRow('routine'); };
+    </script>
+</body>
+</html>
 
 
 
