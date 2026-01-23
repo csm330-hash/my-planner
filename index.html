@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>mune planner v70</title>
+    <title>mune planner v71</title>
     <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
     <style>
         :root { --bg-color: #a2c2e1; --card-bg: #ffffff; }
@@ -13,6 +13,7 @@
         .util-bar { width: 100%; max-width: 1200px; background: white; border-radius: 10px; padding: 10px; margin-bottom: 20px; display: flex; gap: 8px; flex-wrap: wrap; border: 1.5px solid #000; box-shadow: 2.5px 2.5px 0px #000; align-items: center; }
         .util-btn { border: 1px solid #000; padding: 6px 12px; border-radius: 8px; background: #fff; font-weight: bold; cursor: pointer; font-size: 0.85rem; }
         .util-btn.black { background: #000; color: #fff; }
+        .voice-select { border: 1px solid #000; padding: 5px; border-radius: 8px; font-size: 0.8rem; background: #fff9e6; max-width: 150px; }
         .time-info { margin-left: auto; display: flex; align-items: center; gap: 10px; font-weight: 900; }
         #currentDateInput { border: 1px solid #ccc; background: #f0f0f0; font-weight: 900; cursor: pointer; padding: 5px; border-radius: 8px; outline: none; }
         .main-layout { display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 20px; width: 100%; max-width: 1200px; margin: 0 auto; }
@@ -28,12 +29,7 @@
         .time-input { border: none; font-weight: bold; width: 60px; outline: none; background: transparent; font-size: 1rem; text-align: center; }
         .text-input { border: none; flex-grow: 1; outline: none; background: transparent; font-size: 1rem; color: #333; }
         .voice-btn { background: #ffcc00; border: none; padding: 5px 12px; border-radius: 20px; font-weight: bold; cursor: pointer; font-size: 0.8rem; }
-        
         #capture-area { position: absolute; left: -9999px; width: 400px; padding: 40px; background: linear-gradient(135deg, #a2c2e1 0%, #ffffff 100%); border-radius: 20px; color: #333; box-sizing: border-box; }
-        #capture-area .card-tag { font-size: 0.8rem; font-weight: bold; color: #666; margin-bottom: 10px; }
-        #capture-area .card-content { font-size: 1.2rem; font-weight: 500; line-height: 1.8; white-space: pre-wrap; margin-bottom: 20px; min-height: 100px; }
-        #capture-area .card-footer { font-size: 0.7rem; color: #888; text-align: right; border-top: 1px solid #ddd; padding-top: 10px; }
-
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 999; }
         #multiPasteModal { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 30px; border-radius: 20px; border: 2px solid #000; z-index: 1000; width: 85%; max-width: 450px; }
         .date-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 20px 0; max-height: 250px; overflow-y: auto; }
@@ -43,9 +39,9 @@
 <body onclick="unlockAudio()">
 
     <div id="capture-area">
-        <div class="card-tag">MUNE CREATIVE IDEA</div>
-        <div id="capture-text" class="card-content"></div>
-        <div id="capture-footer" class="card-footer"></div>
+        <div class="card-tag" style="font-size:0.8rem; font-weight:bold; color:#666; margin-bottom:10px;">MUNE CREATIVE IDEA</div>
+        <div id="capture-text" style="font-size:1.2rem; font-weight:500; line-height:1.8; white-space:pre-wrap; margin-bottom:20px; min-height:100px;"></div>
+        <div id="capture-footer" style="font-size:0.7rem; color:#888; text-align:right; border-top:1px solid #ddd; padding-top:10px;"></div>
     </div>
 
     <div class="header">
@@ -59,13 +55,14 @@
     <div class="util-bar">
         <button class="util-btn" onclick="speakAll()">읽기</button>
         <button class="util-btn" onclick="stopSpeak()">정지</button>
+        <select id="voiceSelect" class="voice-select" onchange="testSound()"></select>
+        
         <button class="util-btn" onclick="copyList('routine')">루틴복사</button>
         <button class="util-btn" onclick="copyList('health')">건강복사</button>
         <button class="util-btn black" onclick="openMultiPaste()">다중붙여넣기</button>
         <button class="util-btn" onclick="exportData()">백업</button>
         <button class="util-btn" style="border-style:dashed;" onclick="document.getElementById('fileInput').click()">가져오기</button>
         <input type="file" id="fileInput" style="display:none" onchange="importData(this)">
-        <button class="util-btn" onclick="testSound()" style="background: #fff9e6; border-color: #f39c12;">🔊 알람 테스트</button>
         
         <div class="time-info">
             <input type="date" id="currentDateInput" onchange="loadDayData(this.value)">
@@ -124,34 +121,66 @@
         let lastCopiedData = null;
         let ringedAlarms = new Set();
         let isAudioUnlocked = false;
+        let voices = [];
 
-        function playAlarm(time, task) {
-            const beep = document.getElementById('alarmSound');
-            beep.play().then(() => {
-                setTimeout(() => {
-                    const message = new SpeechSynthesisUtterance(`혜원님, ${time}입니다. ${task} 시간이에요.`);
-                    message.lang = 'ko-KR';
-                    window.speechSynthesis.speak(message);
-                }, 500);
-            }).catch(() => {});
+        // [v71 핵심] 시스템의 모든 목소리 가져오기
+        function loadVoices() {
+            voices = window.speechSynthesis.getVoices();
+            const voiceSelect = document.getElementById('voiceSelect');
+            voiceSelect.innerHTML = '';
+            
+            // 한국어 목소리만 필터링해서 드롭다운에 추가
+            const koVoices = voices.filter(voice => voice.lang.includes('ko'));
+            koVoices.forEach((voice, i) => {
+                const option = document.createElement('option');
+                option.value = i;
+                option.textContent = voice.name;
+                // 구글이나 프리미엄 목소리가 있으면 기본값으로 선택 시도
+                if (voice.name.includes('Google') || voice.name.includes('Natural')) option.selected = true;
+                voiceSelect.appendChild(option);
+            });
         }
 
-        function unlockAudio() {
-            if (isAudioUnlocked) return;
-            const sound = document.getElementById('alarmSound');
-            sound.play().then(() => {
-                sound.pause();
-                const silentMsg = new SpeechSynthesisUtterance("");
-                window.speechSynthesis.speak(silentMsg);
-                isAudioUnlocked = true;
-            }).catch(() => {});
+        // 목소리 목록이 로드될 때 실행 (브라우저마다 시점이 다름)
+        window.speechSynthesis.onvoiceschanged = loadVoices;
+
+        function getSelectedVoice() {
+            const koVoices = voices.filter(voice => voice.lang.includes('ko'));
+            const selectedIdx = document.getElementById('voiceSelect').value;
+            return koVoices[selectedIdx] || null;
+        }
+
+        function speakText(text) {
+            window.speechSynthesis.cancel(); // 겹치지 않게 이전 음성 중단
+            const msg = new SpeechSynthesisUtterance(text);
+            msg.voice = getSelectedVoice();
+            msg.rate = 0.9;  // 약간 천천히 (다정함)
+            msg.pitch = 1.1; // 톤을 약간 높임 (밝은 느낌)
+            window.speechSynthesis.speak(msg);
+        }
+
+        function playAlarm(time, task) {
+            document.getElementById('alarmSound').play().catch(() => {});
+            setTimeout(() => {
+                speakText(`혜원님, ${time}입니다. ${task} 시간이에요.`);
+            }, 500);
         }
 
         function testSound() {
-            const m = new SpeechSynthesisUtterance("혜원님, 컴퓨터 알림 테스트입니다. 잘 들리시나요?");
-            m.lang = 'ko-KR';
-            window.speechSynthesis.speak(m);
+            speakText("혜원님, 지금 선택하신 목소리는 어떠신가요? 마음에 드실 때까지 골라보세요!");
         }
+
+        function speakAll() {
+            const items = Array.from(document.querySelectorAll('.list-item'));
+            const lines = items.map(i => {
+                const t = i.querySelector('.time-input').value;
+                const txt = i.querySelector('.text-input').value;
+                return txt ? `${t}, ${txt}` : null;
+            }).filter(v => v).join('. ');
+            speakText(`혜원님, 오늘 일정을 시간별로 브리핑해 드릴게요. ${lines || '일정이 없습니다.'}`);
+        }
+
+        function stopSpeak() { window.speechSynthesis.cancel(); }
 
         function updateDisplay() {
             const now = new Date();
@@ -164,52 +193,18 @@
                 document.getElementById('currentDateInput').value = today;
                 loadDayData(today);
             }
-
             if (now.getSeconds() === 0) ringedAlarms.clear();
-
             document.querySelectorAll('.list-item').forEach((item, idx) => {
                 const t = item.querySelector('.time-input').value;
                 const task = item.querySelector('.text-input').value;
                 if(item.querySelector('.icon-btn.alarm').classList.contains('active') && t === currentStr) {
                     const id = `${currentStr}-${task}-${idx}`;
-                    if(!ringedAlarms.has(id)) {
-                        playAlarm(t, task);
-                        ringedAlarms.add(id);
-                    }
+                    if(!ringedAlarms.has(id)) { playAlarm(t, task); ringedAlarms.add(id); }
                 }
             });
-
             const gcpDate = new Date('2026-03-10T00:00:00');
             const diff = Math.ceil((gcpDate - seoulNow.setHours(0,0,0,0)) / (1000*60*60*24));
             document.getElementById('gcp-dday').innerText = `D-${diff}`;
-        }
-
-        function speakAll() {
-            const listItems = Array.from(document.querySelectorAll('.list-item'));
-            const speechLines = listItems.map(item => {
-                const time = item.querySelector('.time-input').value;
-                const text = item.querySelector('.text-input').value;
-                return text ? `${time}, ${text}` : null;
-            }).filter(v => v).join('. ');
-            const message = new SpeechSynthesisUtterance(`혜원님, 오늘의 일정을 시간 순서대로 읽어드릴게요. ${speechLines || '일정이 없습니다.'}`);
-            message.lang = 'ko-KR';
-            window.speechSynthesis.speak(message);
-        }
-
-        function stopSpeak() { window.speechSynthesis.cancel(); }
-
-        function captureIdea() {
-            const text = document.getElementById('idea-text').value;
-            if(!text) return alert("저장할 내용이 없습니다.");
-            const area = document.getElementById('capture-area');
-            document.getElementById('capture-text').innerText = text;
-            document.getElementById('capture-footer').innerText = `Created by HYEWON | ${document.getElementById('currentDateInput').value}`;
-            html2canvas(area).then(canvas => {
-                const link = document.createElement('a');
-                link.download = `mune_idea_${new Date().getTime()}.png`;
-                link.href = canvas.toDataURL();
-                link.click();
-            });
         }
 
         function saveCurrentDay() {
@@ -274,32 +269,25 @@
             items.forEach(item => list.appendChild(item));
         }
 
-        function startVoice(target) {
-            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-            const recognition = new SpeechRecognition(); recognition.lang = 'ko-KR';
-            recognition.onresult = (event) => {
-                let transcript = event.results[0][0].transcript.trim();
-                if (transcript.includes("삭제") || transcript.includes("지워")) {
-                    if(target === 'idea') document.getElementById('idea-text').value = '';
-                    else if(target === 'diet') document.getElementById('diet-text').value = '';
-                    else { const list = document.getElementById(`${target}-list`); if(list.lastElementChild) list.lastElementChild.remove(); }
-                    saveCurrentDay(); return;
-                }
-                if (target === 'idea') { document.getElementById('idea-text').value += "📌 " + transcript + "\n"; saveCurrentDay(); }
-                else if (target === 'diet') { document.getElementById('diet-text').value += transcript + ", "; saveCurrentDay(); }
-                else {
-                    const timeMatch = transcript.match(/(오전|오후)?\s*(\d+)\s*시\s*(?:(\d+)\s*분)?/);
-                    let hh = 9, mm = "00", task = transcript;
-                    if (timeMatch) {
-                        const ampm = timeMatch[1]; let hour = parseInt(timeMatch[2]); const minute = timeMatch[3] || "00";
-                        if (ampm === "오후" && hour < 12) hour += 12; if (ampm === "오전" && hour === 12) hour = 0;
-                        hh = String(hour).padStart(2, '0'); mm = minute.padStart(2, '0');
-                        task = transcript.replace(timeMatch[0], "").trim();
-                    }
-                    addRow(target, `${hh}:${mm}`, task);
-                }
-            };
-            recognition.start();
+        function unlockAudio() {
+            if (isAudioUnlocked) return;
+            const sound = document.getElementById('alarmSound');
+            sound.play().then(() => { sound.pause(); isAudioUnlocked = true; }).catch(() => {});
+            loadVoices();
+        }
+
+        function captureIdea() {
+            const text = document.getElementById('idea-text').value;
+            if(!text) return alert("저장할 내용이 없습니다.");
+            const area = document.getElementById('capture-area');
+            document.getElementById('capture-text').innerText = text;
+            document.getElementById('capture-footer').innerText = `Created by HYEWON | ${document.getElementById('currentDateInput').value}`;
+            html2canvas(area).then(canvas => {
+                const link = document.createElement('a');
+                link.download = `mune_idea_${new Date().getTime()}.png`;
+                link.href = canvas.toDataURL();
+                link.click();
+            });
         }
 
         function copyList(target) {
@@ -346,8 +334,32 @@
             }; reader.readAsText(file);
         }
 
+        function startVoice(target) {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRecognition) return alert("이 브라우저는 음성 인식을 지원하지 않습니다.");
+            const recognition = new SpeechRecognition(); recognition.lang = 'ko-KR';
+            recognition.onresult = (event) => {
+                let transcript = event.results[0][0].transcript.trim();
+                if (target === 'idea') { document.getElementById('idea-text').value += "📌 " + transcript + "\n"; saveCurrentDay(); }
+                else if (target === 'diet') { document.getElementById('diet-text').value += transcript + ", "; saveCurrentDay(); }
+                else {
+                    const timeMatch = transcript.match(/(오전|오후)?\s*(\d+)\s*시\s*(?:(\d+)\s*분)?/);
+                    let hh = 9, mm = "00", task = transcript;
+                    if (timeMatch) {
+                        const ampm = timeMatch[1]; let hour = parseInt(timeMatch[2]); const minute = timeMatch[3] || "00";
+                        if (ampm === "오후" && hour < 12) hour += 12; if (ampm === "오전" && hour === 12) hour = 0;
+                        hh = String(hour).padStart(2, '0'); mm = minute.padStart(2, '0');
+                        task = transcript.replace(timeMatch[0], "").trim();
+                    }
+                    addRow(target, `${hh}:${mm}`, task);
+                }
+            };
+            recognition.start();
+        }
+
         setInterval(updateDisplay, 1000);
         updateDisplay();
+        setTimeout(loadVoices, 500); // 초기 로드 시 시도
     </script>
 </body>
 </html>
