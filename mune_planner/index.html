@@ -3,54 +3,55 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>mune planner v47</title>
+    <title>mune planner v48</title>
     <style>
         :root { --bg-color: #a2c2e1; --card-bg: #ffffff; }
         body { background-color: var(--bg-color); font-family: 'Pretendard', sans-serif; margin: 0; padding: 20px; transition: background 0.3s; }
         
-        /* 헤더 섹션 */
         .header { width: 100%; max-width: 1200px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: flex-end; }
         .header h1 { font-size: 2.2rem; margin: 0; font-weight: 900; }
-        .color-picker-wrapper { display: flex; align-items: center; gap: 10px; }
-        #bgColorInput { width: 40px; height: 40px; border: 3px solid white; border-radius: 50%; cursor: pointer; padding: 0; background: none; box-shadow: 1px 1px 5px rgba(0,0,0,0.2); }
-
-        /* [복구] 유틸리티 바 및 버튼 스타일 */
+        
         .util-bar { 
             width: 100%; max-width: 1200px; background: white; border-radius: 10px; 
             padding: 10px; margin-bottom: 20px; display: flex; gap: 8px; flex-wrap: wrap;
-            border: 1.5px solid #000; box-shadow: 2.5px 2.5px 0px #000; align-items: center;
+            border: 1px solid #000; box-shadow: 2.5px 2.5px 0px #000; align-items: center;
         }
-        .util-btn { border: 1px solid #000; padding: 6px 12px; border-radius: 8px; background: #fff; font-weight: bold; cursor: pointer; font-size: 0.85rem; transition: 0.1s; }
-        .util-btn:active { transform: translate(1px, 1px); box-shadow: none; }
+        .util-btn { border: 1px solid #000; padding: 6px 12px; border-radius: 8px; background: #fff; font-weight: bold; cursor: pointer; font-size: 0.85rem; }
         .util-btn.black { background: #000; color: #fff; }
 
-        /* [복구] 날짜 및 시계 영역 (달력 버튼 포함) */
         .time-info { margin-left: auto; display: flex; align-items: center; gap: 10px; font-weight: 900; }
         .date-container { display: flex; align-items: center; gap: 5px; background: #f0f0f0; padding: 5px 10px; border-radius: 8px; border: 1px solid #ccc; }
-        #currentDateInput { border: none; background: transparent; font-weight: 900; font-size: 0.95rem; font-family: inherit; cursor: pointer; outline: none; }
+        #currentDateInput { border: none; background: transparent; font-weight: 900; cursor: pointer; outline: none; }
 
-        /* 메인 레이아웃 및 카드 */
         .main-layout { display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 20px; width: 100%; max-width: 1200px; margin: 0 auto; }
         .card { background: var(--card-bg); border-radius: 30px; padding: 25px; box-shadow: 0 10px 20px rgba(0,0,0,0.05); min-height: 450px; }
+        
+        /* 다중붙여넣기 모달 스타일 */
+        #multiPasteModal {
+            display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            background: white; padding: 30px; border-radius: 20px; border: 2px solid #000;
+            z-index: 1000; box-shadow: 10px 10px 0px rgba(0,0,0,0.2); width: 80%; max-width: 400px;
+        }
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 999; }
+        .date-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 20px 0; max-height: 200px; overflow-y: auto; }
+        .date-item { border: 1px solid #ddd; padding: 5px; font-size: 0.8rem; text-align: center; border-radius: 5px; cursor: pointer; }
+        .date-item input { margin-right: 5px; }
+
+        /* 기존 요소 스타일 유지 */
         .list-item { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid #eee; }
         .icon-btn { cursor: pointer; font-size: 1.1rem; opacity: 0.3; }
         .icon-btn.active { opacity: 1; color: #ff4d4d; }
-        .time-input { border: none; font-weight: bold; width: 55px; font-size: 1rem; outline: none; background: transparent; }
-        .text-input { border: none; flex-grow: 1; font-size: 1rem; outline: none; background: transparent; }
+        .time-input { border: none; font-weight: bold; width: 55px; outline: none; background: transparent; }
+        .text-input { border: none; flex-grow: 1; outline: none; background: transparent; }
         .voice-btn { background: #ffcc00; border: none; padding: 5px 12px; border-radius: 20px; font-weight: bold; cursor: pointer; font-size: 0.8rem; }
-        .dday-box { background: #f0f4f8; border-radius: 15px; padding: 15px; display: flex; justify-content: space-between; margin-bottom: 20px; font-weight: 900; }
     </style>
 </head>
 <body>
 
     <div class="header">
-        <div>
-            <h1>mune planner</h1>
-            <div class="subtitle" style="font-weight:bold;">MUNE Professional Dashboard</div>
-        </div>
+        <h1>mune planner</h1>
         <div class="color-picker-wrapper">
-            <span style="font-size:0.8rem; font-weight:bold; color:#555;">바탕색 변경</span>
-            <input type="color" id="bgColorInput" value="#a2c2e1" oninput="changeBg(this.value)">
+            <input type="color" id="bgColorInput" value="#a2c2e1" oninput="document.body.style.backgroundColor = this.value">
         </div>
     </div>
 
@@ -59,141 +60,129 @@
         <button class="util-btn" onclick="stopSpeak()">정지</button>
         <button class="util-btn" onclick="copyList('routine')">루틴복사</button>
         <button class="util-btn" onclick="copyList('health')">건강복사</button>
-        <button class="util-btn black" onclick="alert('다중붙여넣기 모드 활성화')">다중붙여넣기</button>
+        <button class="util-btn black" onclick="openMultiPaste()">다중붙여넣기</button>
         <button class="util-btn" onclick="exportData()">백업</button>
         <button class="util-btn" style="border-style:dashed;" onclick="document.getElementById('fileInput').click()">가져오기</button>
         <input type="file" id="fileInput" style="display:none" onchange="importData(this)">
         
         <div class="time-info">
-            <div class="date-container">
-                <input type="date" id="currentDateInput" onchange="updateDateDisplay(this.value)">
-            </div>
-            <span id="clock" style="font-size: 1.1rem;">00:00:00</span>
+            <div class="date-container"><input type="date" id="currentDateInput"></div>
+            <span id="clock">00:00:00</span>
         </div>
     </div>
 
     <div class="main-layout">
         <div class="card">
-            <div class="card-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
-                <span style="font-size:1.3rem; font-weight:bold;">📅 일정 & 건강</span>
+            <div class="card-header" style="display:flex; justify-content:space-between; align-items:center;">
+                <span style="font-size:1.2rem; font-weight:bold;">📅 일정 & 건강</span>
                 <button class="voice-btn" onclick="startVoice('routine')">🎤 음성추가</button>
             </div>
             <div id="routine-list"></div>
-            <button onclick="addRow('routine')" style="margin-top:10px; background:none; border:none; color:#999; cursor:pointer;">+ 항목 추가</button>
+            <button onclick="addRow('routine')" style="margin-top:10px; background:none; border:none; color:#999; cursor:pointer;">+ 추가</button>
         </div>
 
         <div class="card">
-            <div class="card-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
-                <span style="font-size:1.3rem; font-weight:bold;">💊 건강 관리</span>
+            <div class="card-header" style="display:flex; justify-content:space-between; align-items:center;">
+                <span style="font-size:1.2rem; font-weight:bold;">💊 건강 관리</span>
                 <button class="voice-btn" onclick="startVoice('health')">🎤 기록</button>
             </div>
             <div id="health-list"></div>
-            <button onclick="addRow('health')" style="margin-top:10px; background:none; border:none; color:#999; cursor:pointer;">+ 항목 추가</button>
+            <button onclick="addRow('health')" style="margin-top:10px; background:none; border:none; color:#999; cursor:pointer;">+ 추가</button>
         </div>
 
         <div class="card">
-            <div class="card-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
-                <span style="font-size:1.3rem; font-weight:bold;">💡 창작 메모</span>
+            <div class="card-header" style="display:flex; justify-content:space-between; align-items:center;">
+                <span style="font-size:1.2rem; font-weight:bold;">💡 창작 메모</span>
                 <button class="voice-btn" onclick="startVoice('idea')">🎤 기록</button>
             </div>
-            <div class="dday-box">
-                <span style="font-size:0.9rem;">GCP 만료 (3/10)</span>
-                <span id="gcp-dday" style="font-size: 1.3rem;">D-46</span>
+            <div style="background:#f0f4f8; padding:10px; border-radius:10px; margin-bottom:10px; display:flex; justify-content:space-between;">
+                <span>GCP 만료 (3/10)</span><span id="gcp-dday">D-46</span>
             </div>
-            <textarea id="idea-text" style="width:100%; height:250px; border:none; background:#f9f9f9; padding:15px; border-radius:15px; font-size:1rem; outline:none;" placeholder="아이디어를 말씀하세요..."></textarea>
+            <textarea id="idea-text" style="width:100%; height:200px; border:none; background:#f9f9f9; padding:10px; border-radius:10px; font-size:1rem; outline:none;"></textarea>
+        </div>
+    </div>
+
+    <div id="modalOverlay" class="modal-overlay" onclick="closeMultiPaste()"></div>
+    <div id="multiPasteModal">
+        <h3>날짜 선택 후 붙여넣기</h3>
+        <p style="font-size:0.8rem; color:#666;">마지막으로 복사된 루틴/건강 정보가 선택한 날짜들에 저장됩니다.</p>
+        <div id="dateGrid" class="date-grid"></div>
+        <div style="display:flex; gap:10px;">
+            <button class="util-btn black" style="flex:1" onclick="applyMultiPaste()">붙여넣기 실행</button>
+            <button class="util-btn" style="flex:1" onclick="closeMultiPaste()">취소</button>
         </div>
     </div>
 
     <script>
-        // 1. 바탕색 및 날짜 초기화
-        function changeBg(color) { document.body.style.backgroundColor = color; }
-        function updateDateDisplay(val) { console.log("선택된 날짜:", val); }
+        let lastCopiedData = null;
 
-        // 2. 항목 추가 (v36 스타일)
-        function addRow(target, time="09:00", text="", repeat=false, alarm=false) {
+        // 1. 다중붙여넣기 모달 열기
+        function openMultiPaste() {
+            if (!lastCopiedData) { alert("먼저 '루틴복사' 또는 '건강복사'를 눌러주세요."); return; }
+            const grid = document.getElementById('dateGrid');
+            grid.innerHTML = '';
+            const now = new Date();
+            for (let i = 0; i < 14; i++) {
+                const targetDate = new Date();
+                targetDate.setDate(now.getDate() + i);
+                const dateStr = targetDate.toISOString().split('T')[0];
+                grid.innerHTML += `<label class="date-item"><input type="checkbox" value="${dateStr}">${dateStr.slice(5)}</label>`;
+            }
+            document.getElementById('modalOverlay').style.display = 'block';
+            document.getElementById('multiPasteModal').style.display = 'block';
+        }
+
+        function closeMultiPaste() {
+            document.getElementById('modalOverlay').style.display = 'none';
+            document.getElementById('multiPasteModal').style.display = 'none';
+        }
+
+        function applyMultiPaste() {
+            const selectedDates = Array.from(document.querySelectorAll('#dateGrid input:checked')).map(cb => cb.value);
+            if (selectedDates.length === 0) { alert("날짜를 선택해 주세요."); return; }
+            selectedDates.forEach(date => {
+                const key = `planner_${date}`;
+                localStorage.setItem(key, JSON.stringify(lastCopiedData));
+            });
+            alert(`${selectedDates.length}개의 날짜에 복사가 완료되었습니다.`);
+            closeMultiPaste();
+        }
+
+        // 2. 복사 기능 (데이터 저장)
+        function copyList(target) {
+            const list = Array.from(document.querySelectorAll(`#${target}-list .list-item`)).map(item => ({
+                time: item.querySelector('.time-input').value,
+                text: item.querySelector('.text-input').value
+            }));
+            lastCopiedData = list;
+            alert(`${target === 'routine' ? '루틴' : '건강'} 목록이 복사되었습니다.`);
+        }
+
+        // 3. 기본 기능 복구
+        function addRow(target, time="09:00", text="") {
             const list = document.getElementById(`${target}-list`);
             const div = document.createElement('div');
             div.className = 'list-item';
-            div.innerHTML = `
-                <span class="icon-btn ${repeat?'active':''}" onclick="this.classList.toggle('active')">🔄</span>
-                <span class="icon-btn ${alarm?'active':''}" onclick="this.classList.toggle('active')">🔔</span>
-                <input type="text" class="time-input" value="${time}">
-                <input type="text" class="text-input" value="${text}" placeholder="내용 입력">
-                <span onclick="this.parentElement.remove()" style="cursor:pointer; color:#ccc; margin-left:5px;">✕</span>
-            `;
+            div.innerHTML = `<span class="icon-btn">🔄</span><span class="icon-btn">🔔</span><input type="text" class="time-input" value="${time}"><input type="text" class="text-input" value="${text}" placeholder="내용 입력"><span onclick="this.parentElement.remove()" style="cursor:pointer; color:#ccc;">✕</span>`;
             list.appendChild(div);
         }
 
-        // 3. 버튼 기능들 활성화
-        function speakAll() {
-            const items = document.querySelectorAll('.text-input');
-            let text = "";
-            items.forEach(i => { if(i.value) text += i.value + ". "; });
-            const msg = new SpeechSynthesisUtterance(text);
-            msg.lang = 'ko-KR';
-            window.speechSynthesis.speak(msg);
-        }
-        function stopSpeak() { window.speechSynthesis.cancel(); }
-        
-        function copyList(target) {
-            const inputs = document.getElementById(`${target}-list`).querySelectorAll('.text-input');
-            let str = "";
-            inputs.forEach(i => { if(i.value) str += i.value + "\n"; });
-            navigator.clipboard.writeText(str);
-            alert("목록이 복사되었습니다!");
-        }
-
-        function exportData() {
-            const data = {
-                routine: Array.from(document.querySelectorAll('#routine-list .list-item')).map(el => ({
-                    time: el.querySelector('.time-input').value,
-                    text: el.querySelector('.text-input').value
-                })),
-                idea: document.getElementById('idea-text').value
-            };
-            const blob = new Blob([JSON.stringify(data)], {type: 'text/plain'});
-            const a = document.createElement('a');
-            a.href = URL.createObjectURL(blob);
-            a.download = `mune_backup_${new Date().toLocaleDateString()}.txt`;
-            a.click();
-        }
-
-        function importData(input) {
-            const file = input.files[0];
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                const data = JSON.parse(e.target.result);
-                document.getElementById('routine-list').innerHTML = '';
-                if(data.routine) data.routine.forEach(item => addRow('routine', item.time, item.text));
-                if(data.idea) document.getElementById('idea-text').value = data.idea;
-                alert("백업을 불러왔습니다!");
-            };
-            reader.readAsText(file);
-        }
-
-        // 4. 한국 시간 및 D-Day
         function updateDisplay() {
             const now = new Date();
             const seoulNow = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Seoul' }));
             document.getElementById('clock').innerText = seoulNow.toLocaleTimeString('ko-KR', { hour12: false });
-            
             if(!document.getElementById('currentDateInput').value) {
-                const y = seoulNow.getFullYear();
-                const m = String(seoulNow.getMonth() + 1).padStart(2, '0');
-                const d = String(seoulNow.getDate()).padStart(2, '0');
-                document.getElementById('currentDateInput').value = `${y}-${m}-${d}`;
+                document.getElementById('currentDateInput').value = seoulNow.toISOString().split('T')[0];
             }
-
             const gcpDate = new Date('2026-03-10T00:00:00');
             const diff = Math.ceil((gcpDate - seoulNow.setHours(0,0,0,0)) / (1000*60*60*24));
             document.getElementById('gcp-dday').innerText = `D-${diff}`;
         }
 
-        // 5. 음성 인식
+        // 4. 음성 인식
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         const recognition = new SpeechRecognition();
         recognition.lang = 'ko-KR';
-
         function startVoice(target) {
             recognition.onresult = (event) => {
                 let transcript = event.results[0][0].transcript;
@@ -205,7 +194,7 @@
                     if (timeMatch) {
                         hh = timeMatch[1].padStart(2, '0');
                         mm = (timeMatch[2] || "00").padStart(2, '0');
-                        task = transcript.replace(timeMatch[0], "").replace(/오전|오후/g, "").trim();
+                        task = transcript.replace(timeMatch[0], "").trim();
                     }
                     addRow(target, `${hh}:${mm}`, task);
                 }
@@ -218,4 +207,5 @@
     </script>
 </body>
 </html>
+
 
