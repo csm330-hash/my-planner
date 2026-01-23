@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>mune planner v45</title>
+    <title>mune planner v46</title>
     <style>
         :root { --bg-color: #a2c2e1; --card-bg: #ffffff; }
         body { background-color: var(--bg-color); font-family: 'Pretendard', sans-serif; margin: 0; padding: 20px; transition: background 0.3s; }
@@ -11,9 +11,10 @@
         .header { width: 100%; max-width: 1200px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: flex-end; }
         .header h1 { font-size: 2.2rem; margin: 0; font-weight: 900; }
         
-        /* 바탕색 변경 버튼 UI 복구 */
-        .color-picker { display: flex; gap: 8px; margin-bottom: 10px; }
-        .color-dot { width: 25px; height: 25px; border-radius: 50%; border: 2px solid white; cursor: pointer; box-shadow: 1px 1px 3px rgba(0,0,0,0.2); }
+        /* [개선] 무한 색상 피커 UI */
+        .color-picker-wrapper { display: flex; align-items: center; gap: 10px; }
+        .color-label { font-size: 0.8rem; font-weight: bold; color: #555; }
+        #bgColorInput { width: 40px; height: 40px; border: 3px solid white; border-radius: 50%; cursor: pointer; padding: 0; background: none; box-shadow: 1px 1px 5px rgba(0,0,0,0.2); }
 
         .util-bar { 
             width: 100%; max-width: 1200px; background: white; border-radius: 10px; 
@@ -26,29 +27,31 @@
         .main-layout { display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 20px; width: 100%; max-width: 1200px; margin: 0 auto; }
         .card { background: var(--card-bg); border-radius: 30px; padding: 25px; box-shadow: 0 10px 20px rgba(0,0,0,0.05); min-height: 450px; }
         
-        /* 리스트 스타일 (반복/알림 아이콘 및 타자 입력) */
         .list-item { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid #eee; }
         .icon-btn { cursor: pointer; font-size: 1.1rem; opacity: 0.3; transition: 0.2s; }
-        .icon-btn.active { opacity: 1; }
+        .icon-btn.active { opacity: 1; color: #ff4d4d; }
         .time-input { border: none; font-weight: bold; width: 55px; font-size: 1rem; outline: none; background: transparent; }
         .text-input { border: none; flex-grow: 1; font-size: 1rem; outline: none; background: transparent; }
 
         .voice-btn { background: #ffcc00; border: none; padding: 5px 12px; border-radius: 20px; font-weight: bold; cursor: pointer; font-size: 0.8rem; }
         .dday-box { background: #f0f4f8; border-radius: 15px; padding: 15px; display: flex; justify-content: space-between; margin-bottom: 20px; font-weight: 900; }
+        
+        /* [복구] 날짜 및 시계 스타일 */
+        .time-info { margin-left: auto; display: flex; align-items: center; gap: 15px; font-weight: 900; }
+        #currentDate { font-size: 1rem; color: #333; }
+        #clock { font-size: 1.1rem; color: #000; }
     </style>
 </head>
-<body id="mainBody">
+<body>
 
     <div class="header">
         <div>
             <h1>mune planner</h1>
             <div class="subtitle" style="font-weight:bold;">MUNE Professional Dashboard</div>
         </div>
-        <div class="color-picker">
-            <div class="color-dot" style="background:#a2c2e1;" onclick="changeBg('#a2c2e1')"></div>
-            <div class="color-dot" style="background:#f5e6cc;" onclick="changeBg('#f5e6cc')"></div>
-            <div class="color-dot" style="background:#d4e6d9;" onclick="changeBg('#d4e6d9')"></div>
-            <div class="color-dot" style="background:#f2d5d5;" onclick="changeBg('#f2d5d5')"></div>
+        <div class="color-picker-wrapper">
+            <span class="color-label">바탕색 변경</span>
+            <input type="color" id="bgColorInput" value="#a2c2e1" oninput="changeBg(this.value)">
         </div>
     </div>
 
@@ -61,7 +64,11 @@
         <button class="util-btn" onclick="exportData()">백업</button>
         <button class="util-btn" style="border-style:dashed;" onclick="document.getElementById('fileInput').click()">가져오기</button>
         <input type="file" id="fileInput" style="display:none" onchange="importData(this)">
-        <span id="clock" style="margin-left:auto; font-weight:900;">00:00:00</span>
+        
+        <div class="time-info">
+            <span id="currentDate">2026-01-23</span>
+            <span id="clock">00:00:00</span>
+        </div>
     </div>
 
     <div class="main-layout">
@@ -92,15 +99,15 @@
                 <span style="font-size:0.9rem;">GCP 만료 (3/10)</span>
                 <span id="gcp-dday">D-46</span>
             </div>
-            <textarea id="idea-text" style="width:100%; height:250px; border:none; background:#f9f9f9; padding:15px; border-radius:15px; font-size:1rem; outline:none;" placeholder="두서없이 말해도 AI가 요약합니다..."></textarea>
+            <textarea id="idea-text" style="width:100%; height:250px; border:none; background:#f9f9f9; padding:15px; border-radius:15px; font-size:1rem; outline:none;" placeholder="아이디어를 말씀하세요..."></textarea>
         </div>
     </div>
 
     <script>
-        // 1. 바탕색 변경 함수
+        // 1. 바탕색 변경 (무한 색상 피커 연결)
         function changeBg(color) { document.body.style.backgroundColor = color; }
 
-        // 2. 항목 추가 함수 (아이콘, 시간, 타자 입력 포함)
+        // 2. 항목 추가 (v36 스타일 아이콘/타자/수동수정 완벽 지원)
         function addRow(target, time="09:00", text="", repeat=false, alarm=false) {
             const list = document.getElementById(`${target}-list`);
             const div = document.createElement('div');
@@ -115,40 +122,45 @@
             list.appendChild(div);
         }
 
-        // 3. 가져오기(Import) 기능 완벽 복구
+        // 3. 가져오기(Import) 기능
         function importData(input) {
             const file = input.files[0];
             const reader = new FileReader();
             reader.onload = (e) => {
                 try {
                     const data = JSON.parse(e.target.result);
-                    // 기존 리스트 비우기
                     document.getElementById('routine-list').innerHTML = '';
                     document.getElementById('health-list').innerHTML = '';
-                    
-                    // 데이터 파싱 및 추가
                     if(data.routine) data.routine.forEach(item => addRow('routine', item.time, item.text, item.repeat, item.alarm));
                     if(data.health) data.health.forEach(item => addRow('health', item.time, item.text, item.repeat, item.alarm));
                     if(data.idea) document.getElementById('idea-text').value = data.idea;
-                    
-                    alert("성공적으로 데이터를 불러왔습니다!");
-                } catch (err) {
-                    alert("파일 형식이 올바르지 않습니다. v36 백업 파일을 확인해 주세요.");
-                }
+                    alert("데이터를 성공적으로 불러왔습니다!");
+                } catch (err) { alert("파일 형식이 올바르지 않습니다."); }
             };
             reader.readAsText(file);
         }
 
-        // 4. 한국 시간 및 D-Day
+        // 4. 날짜 및 시간 업데이트 (한국 기준)
         function updateDisplay() {
             const now = new Date();
-            document.getElementById('clock').innerText = now.toLocaleTimeString('ko-KR', { timeZone: 'Asia/Seoul', hour12: false });
+            const seoulNow = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Seoul' }));
+            
+            // 날짜 복구
+            const y = seoulNow.getFullYear();
+            const m = String(seoulNow.getMonth() + 1).padStart(2, '0');
+            const d = String(seoulNow.getDate()).padStart(2, '0');
+            document.getElementById('currentDate').innerText = `${y}-${m}-${d}`;
+            
+            // 시계
+            document.getElementById('clock').innerText = seoulNow.toLocaleTimeString('ko-KR', { hour12: false });
+
+            // GCP D-Day
             const gcpDate = new Date('2026-03-10T00:00:00');
-            const diff = Math.ceil((gcpDate - now) / (1000*60*60*24));
+            const diff = Math.ceil((gcpDate - seoulNow.setHours(0,0,0,0)) / (1000*60*60*24));
             document.getElementById('gcp-dday').innerText = `D-${diff}`;
         }
 
-        // 5. 음성 인식 (기능 통합)
+        // 5. 지능형 음성 인식
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         const recognition = new SpeechRecognition();
         recognition.lang = 'ko-KR';
