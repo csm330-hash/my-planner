@@ -6,51 +6,69 @@
     <title>mune planner</title>
     <style>
         body {
-            background-color: #1a2a44; /* 기존 파란색 배경 */
+            background-color: #1a2a44;
             color: white;
             font-family: 'Pretendard', sans-serif;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            height: 100vh;
+            min-height: 100vh;
             margin: 0;
         }
 
         .container {
             text-align: center;
-            padding: 20px;
+            padding: 30px;
             border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 20px;
+            border-radius: 30px;
             background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(10px);
+            backdrop-filter: blur(15px);
+            width: 90%;
+            max-width: 400px;
         }
 
-        #clock {
-            font-size: 3rem;
-            font-weight: bold;
-            margin-bottom: 20px;
-            color: #ffffff;
-        }
-
-        .milestone-container {
-            margin-top: 20px;
-            text-align: left;
-            display: inline-block;
-        }
+        #clock { font-size: 3.5rem; font-weight: 800; margin-bottom: 20px; }
 
         .milestone-item {
-            font-size: 1.1rem;
+            font-size: 1rem;
             margin-bottom: 10px;
             display: flex;
             justify-content: space-between;
-            width: 250px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            padding-bottom: 8px;
         }
 
-        .d-day {
-            color: #ffcc00;
-            font-weight: bold;
+        /* 식단 기록 섹션 */
+        .diet-card {
+            margin-top: 30px;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
         }
+
+        #diet-result {
+            font-size: 0.9rem;
+            color: #ffcc00;
+            margin-top: 10px;
+            min-height: 1.2rem;
+        }
+
+        .voice-btn {
+            background: #ffcc00;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 50px;
+            font-weight: bold;
+            cursor: pointer;
+            color: #1a2a44;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 0 auto;
+        }
+
+        .voice-btn:active { transform: scale(0.95); }
     </style>
 </head>
 <body>
@@ -58,57 +76,64 @@
     <div class="container">
         <div id="clock">00:00:00</div>
         
-        <div class="milestone-container">
-            <div class="milestone-item">
-                <span>GCP 만료</span>
-                <span id="gcp-dday" class="d-day">계산 중...</span>
-            </div>
-            <div class="milestone-item">
-                <span>예비창업패키지</span>
-                <span class="d-day">공고 대기</span>
-            </div>
+        <div id="gcp-info" class="milestone-item">
+            <span>GCP 크레딧 만료</span>
+            <span id="gcp-dday" style="color:#ffcc00; font-weight:bold;">D-46</span>
+        </div>
+
+        <div class="diet-card">
+            <button class="voice-btn" onclick="startVoiceRecord()">
+                <span>🎤</span> 식단 기록하기
+            </button>
+            <div id="diet-result">오늘 무엇을 드셨나요?</div>
         </div>
     </div>
 
     <script>
+        // --- 1. 한국 시간 설정 ---
         function updateTime() {
-            // 한국 시간(Asia/Seoul)으로 강제 설정
             const now = new Date();
-            const options = { 
-                timeZone: 'Asia/Seoul', 
-                hour: '2-digit', 
-                minute: '2-digit', 
-                second: '2-digit',
-                hour12: false 
+            const timeString = now.toLocaleTimeString('ko-KR', {
+                timeZone: 'Asia/Seoul', hour12: false,
+                hour: '2-digit', minute: '2-digit', second: '2-digit'
+            });
+            document.getElementById('clock').innerText = timeString;
+        }
+
+        // --- 2. 음성 인식 로직 ---
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        
+        if (!SpeechRecognition) {
+            document.getElementById('diet-result').innerText = "이 브라우저는 음성 인식을 지원하지 않습니다.";
+        } else {
+            const recognition = new SpeechRecognition();
+            recognition.lang = 'ko-KR';
+
+            recognition.onstart = () => {
+                document.getElementById('diet-result').innerText = "듣고 있어요... (말씀해 주세요)";
             };
-            const koreanTime = now.toLocaleTimeString('ko-KR', options);
-            document.getElementById('clock').innerText = koreanTime;
+
+            recognition.onresult = (event) => {
+                const text = event.results[0][0].transcript;
+                document.getElementById('diet-result').innerText = "기록됨: " + text;
+                // 나중에 여기서 서버나 메모장으로 저장하는 기능을 추가할 수 있습니다.
+            };
+
+            recognition.onerror = () => {
+                document.getElementById('diet-result').innerText = "음성 인식 오류가 발생했습니다.";
+            };
+
+            function startVoiceRecord() {
+                recognition.start();
+            }
         }
 
-        function calculateDday() {
-            const now = new Date();
-            // 한국 시간 기준으로 오늘 날짜 설정
-            const today = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Seoul' }));
-            today.setHours(0, 0, 0, 0);
-
-            // GCP 만료일: 2026년 3월 10일
-            const gcpDate = new Date('2026-03-10T00:00:00');
-            const diff = gcpDate - today;
-            const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
-            
-            const gcpElement = document.getElementById('gcp-dday');
-            if (days > 0) gcpElement.innerText = `D-${days}`;
-            else if (days === 0) gcpElement.innerText = `D-Day`;
-            else gcpElement.innerText = `D+${Math.abs(days)}`;
-        }
-
-        // 1초마다 시간 업데이트
         setInterval(updateTime, 1000);
         updateTime();
-        calculateDday();
     </script>
 </body>
 </html>
+
 
 
 
