@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>mune planner v67</title>
+    <title>mune planner v70</title>
     <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
     <style>
         :root { --bg-color: #a2c2e1; --card-bg: #ffffff; }
@@ -28,10 +28,12 @@
         .time-input { border: none; font-weight: bold; width: 60px; outline: none; background: transparent; font-size: 1rem; text-align: center; }
         .text-input { border: none; flex-grow: 1; outline: none; background: transparent; font-size: 1rem; color: #333; }
         .voice-btn { background: #ffcc00; border: none; padding: 5px 12px; border-radius: 20px; font-weight: bold; cursor: pointer; font-size: 0.8rem; }
+        
         #capture-area { position: absolute; left: -9999px; width: 400px; padding: 40px; background: linear-gradient(135deg, #a2c2e1 0%, #ffffff 100%); border-radius: 20px; color: #333; box-sizing: border-box; }
         #capture-area .card-tag { font-size: 0.8rem; font-weight: bold; color: #666; margin-bottom: 10px; }
         #capture-area .card-content { font-size: 1.2rem; font-weight: 500; line-height: 1.8; white-space: pre-wrap; margin-bottom: 20px; min-height: 100px; }
         #capture-area .card-footer { font-size: 0.7rem; color: #888; text-align: right; border-top: 1px solid #ddd; padding-top: 10px; }
+
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 999; }
         #multiPasteModal { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 30px; border-radius: 20px; border: 2px solid #000; z-index: 1000; width: 85%; max-width: 450px; }
         .date-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 20px 0; max-height: 250px; overflow-y: auto; }
@@ -63,11 +65,11 @@
         <button class="util-btn" onclick="exportData()">백업</button>
         <button class="util-btn" style="border-style:dashed;" onclick="document.getElementById('fileInput').click()">가져오기</button>
         <input type="file" id="fileInput" style="display:none" onchange="importData(this)">
-        <button class="util-btn" onclick="testSound()" style="background: #fff9e6; border-color: #f39c12;">🔊 테스트</button>
+        <button class="util-btn" onclick="testSound()" style="background: #fff9e6; border-color: #f39c12;">🔊 알람 테스트</button>
         
         <div class="time-info">
             <input type="date" id="currentDateInput" onchange="loadDayData(this.value)">
-            <span id="clock">00:00:00</span>
+            <span id="clock" style="margin-left:10px;">00:00:00</span>
         </div>
     </div>
 
@@ -98,7 +100,7 @@
             </div>
             <div style="background:#f0f4f8; padding:10px; border-radius:12px; margin-bottom:10px; display:flex; justify-content:space-between; font-weight:900;">
                 <span style="font-size:0.8rem;">GCP 만료 (3/10)</span>
-                <span id="gcp-dday" style="font-size:0.9rem;">D-46</span>
+                <span id="gcp-dday" style="font-size:0.9rem;">D-</span>
             </div>
             <textarea id="idea-text" oninput="saveCurrentDay()" style="width:100%; height:120px; border:none; background:#f9f9f9; padding:12px; border-radius:15px; font-size:1rem; outline:none; margin-bottom:20px;"></textarea>
             <div class="card-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
@@ -123,22 +125,15 @@
         let ringedAlarms = new Set();
         let isAudioUnlocked = false;
 
-        // [핵심] 진동 + 보이스 알림 로직
         function playAlarm(time, task) {
             const beep = document.getElementById('alarmSound');
             beep.play().then(() => {
-                // 1. 진동 실행 (0.5초 진동, 0.2초 휴식, 0.5초 진동)
-                if ("vibrate" in navigator) {
-                    navigator.vibrate([500, 200, 500]);
-                }
-                // 2. 음성 안내
                 setTimeout(() => {
                     const message = new SpeechSynthesisUtterance(`혜원님, ${time}입니다. ${task} 시간이에요.`);
                     message.lang = 'ko-KR';
                     window.speechSynthesis.speak(message);
                 }, 500);
             }).catch(() => {});
-            console.log(`알람: ${task}`);
         }
 
         function unlockAudio() {
@@ -146,17 +141,14 @@
             const sound = document.getElementById('alarmSound');
             sound.play().then(() => {
                 sound.pause();
-                sound.currentTime = 0;
                 const silentMsg = new SpeechSynthesisUtterance("");
-                silentMsg.volume = 0;
                 window.speechSynthesis.speak(silentMsg);
                 isAudioUnlocked = true;
             }).catch(() => {});
         }
 
         function testSound() {
-            if ("vibrate" in navigator) navigator.vibrate(200);
-            const m = new SpeechSynthesisUtterance("혜원님, 진동과 음성 테스트입니다.");
+            const m = new SpeechSynthesisUtterance("혜원님, 컴퓨터 알림 테스트입니다. 잘 들리시나요?");
             m.lang = 'ko-KR';
             window.speechSynthesis.speak(m);
         }
@@ -166,12 +158,15 @@
             const seoulNow = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Seoul' }));
             const currentStr = `${String(seoulNow.getHours()).padStart(2, '0')}:${String(seoulNow.getMinutes()).padStart(2, '0')}`;
             document.getElementById('clock').innerText = seoulNow.toLocaleTimeString('ko-KR', { hour12: false });
+            
             if(!document.getElementById('currentDateInput').value) {
                 const today = seoulNow.toISOString().split('T')[0];
                 document.getElementById('currentDateInput').value = today;
                 loadDayData(today);
             }
+
             if (now.getSeconds() === 0) ringedAlarms.clear();
+
             document.querySelectorAll('.list-item').forEach((item, idx) => {
                 const t = item.querySelector('.time-input').value;
                 const task = item.querySelector('.text-input').value;
@@ -183,10 +178,25 @@
                     }
                 }
             });
+
             const gcpDate = new Date('2026-03-10T00:00:00');
             const diff = Math.ceil((gcpDate - seoulNow.setHours(0,0,0,0)) / (1000*60*60*24));
             document.getElementById('gcp-dday').innerText = `D-${diff}`;
         }
+
+        function speakAll() {
+            const listItems = Array.from(document.querySelectorAll('.list-item'));
+            const speechLines = listItems.map(item => {
+                const time = item.querySelector('.time-input').value;
+                const text = item.querySelector('.text-input').value;
+                return text ? `${time}, ${text}` : null;
+            }).filter(v => v).join('. ');
+            const message = new SpeechSynthesisUtterance(`혜원님, 오늘의 일정을 시간 순서대로 읽어드릴게요. ${speechLines || '일정이 없습니다.'}`);
+            message.lang = 'ko-KR';
+            window.speechSynthesis.speak(message);
+        }
+
+        function stopSpeak() { window.speechSynthesis.cancel(); }
 
         function captureIdea() {
             const text = document.getElementById('idea-text').value;
@@ -292,14 +302,13 @@
             recognition.start();
         }
 
-        function speakAll() { const texts = Array.from(document.querySelectorAll('.text-input')).map(i => i.value).filter(v => v).join('. '); const msg = new SpeechSynthesisUtterance(texts); msg.lang = 'ko-KR'; window.speechSynthesis.speak(msg); }
-        function stopSpeak() { window.speechSynthesis.cancel(); }
         function copyList(target) {
             lastCopiedData = Array.from(document.querySelectorAll(`#${target}-list .list-item`)).map(item => ({
                 time: item.querySelector('.time-input').value, text: item.querySelector('.text-input').value,
                 completed: item.classList.contains('completed'), repeat: item.querySelector('.icon-btn:nth-child(2)').classList.contains('active'), alarm: item.querySelector('.icon-btn.alarm').classList.contains('active')
             })); alert("목록이 복사되었습니다.");
         }
+
         function openMultiPaste() {
             if (!lastCopiedData) return alert("먼저 목록을 복사해 주세요.");
             const grid = document.getElementById('dateGrid'); grid.innerHTML = '';
@@ -310,7 +319,7 @@
             }
             document.getElementById('modalOverlay').style.display = 'block'; document.getElementById('multiPasteModal').style.display = 'block';
         }
-        function closeMultiPaste() { document.getElementById('modalOverlay').style.display = 'none'; document.getElementById('multiPasteModal').style.display = 'none'; }
+
         function applyMultiPaste() {
             const dates = Array.from(document.querySelectorAll('#dateGrid input:checked')).map(cb => cb.value);
             dates.forEach(date => {
@@ -319,12 +328,16 @@
             });
             alert("복사 완료!"); closeMultiPaste(); loadDayData(document.getElementById('currentDateInput').value);
         }
+
+        function closeMultiPaste() { document.getElementById('modalOverlay').style.display = 'none'; document.getElementById('multiPasteModal').style.display = 'none'; }
+        
         function exportData() {
             const date = document.getElementById('currentDateInput').value;
             const data = localStorage.getItem(`mune_data_${date}`);
             const blob = new Blob([data], {type: 'application/json'});
             const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `mune_backup_${date}.txt`; a.click();
         }
+
         function importData(input) {
             const file = input.files[0]; const reader = new FileReader();
             reader.onload = (e) => {
