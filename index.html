@@ -3,12 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>mune planner</title>
+    <title>mune planner v42</title>
     <style>
         :root {
             --bg-color: #a2c2e1; /* v36의 편안한 블루 배경 */
             --card-bg: #ffffff;
-            --text-main: #333333;
             --accent: #ff4d4d;
             --highlight: #ffcc00;
         }
@@ -20,43 +19,53 @@
             display: flex; flex-direction: column; align-items: center;
         }
 
-        .header { width: 100%; max-width: 600px; margin-bottom: 20px; text-align: left; }
-        .header h1 { font-size: 2rem; margin: 0; color: #000; font-weight: 900; }
-        .header .subtitle { font-size: 0.9rem; color: #555; margin-top: 5px; font-weight: bold; }
+        /* 헤더 섹션 */
+        .header { width: 100%; max-width: 1100px; margin-bottom: 20px; text-align: left; }
+        .header h1 { font-size: 2.5rem; margin: 0; color: #000; font-weight: 900; }
+        .header .subtitle { font-size: 0.95rem; color: #555; margin-top: 5px; font-weight: bold; }
 
+        /* 시계 및 상단 바 */
         .top-bar {
-            width: 100%; max-width: 600px; background: white; border-radius: 15px;
-            padding: 15px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;
-            border: 1px solid #000; box-shadow: 3px 3px 0px #000;
+            width: 100%; max-width: 1100px; background: white; border-radius: 12px;
+            padding: 12px 20px; margin-bottom: 25px; display: flex; justify-content: space-between; align-items: center;
+            border: 1.5px solid #000; box-shadow: 3px 3px 0px #000;
         }
 
+        /* 3단 카드 레이아웃 */
         .main-layout {
-            display: flex; flex-direction: column; gap: 20px; width: 100%; max-width: 600px;
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 20px; width: 100%; max-width: 1100px;
         }
 
         .card {
-            background: var(--card-bg); border-radius: 25px; padding: 25px;
-            box-shadow: 0 10px 20px rgba(0,0,0,0.05); position: relative;
+            background: var(--card-bg); border-radius: 30px; padding: 25px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.05); min-height: 280px;
             border: 1px solid rgba(0,0,0,0.05);
         }
 
-        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
-        .card-title { font-size: 1.1rem; font-weight: bold; color: #000; }
+        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .card-title { font-size: 1.3rem; font-weight: bold; color: #000; }
 
-        .dday-tag { font-weight: 900; font-size: 1.2rem; color: var(--accent); }
+        .dday-box {
+            background: #f0f4f8; border-radius: 15px; padding: 15px;
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 20px; border: 1px dashed #abc;
+        }
+        .dday-tag { font-weight: 900; font-size: 1.6rem; color: #000; }
 
         .voice-btn {
-            background: var(--highlight); border: none; padding: 7px 15px;
-            border-radius: 20px; font-weight: bold; cursor: pointer; font-size: 0.8rem;
-            color: #000;
+            background: var(--highlight); border: none; padding: 8px 18px;
+            border-radius: 50px; font-weight: bold; cursor: pointer; font-size: 0.9rem;
+            display: flex; align-items: center; gap: 6px; box-shadow: 2px 2px 0px rgba(0,0,0,0.1);
         }
 
         .result-area {
-            font-size: 0.95rem; color: #444; line-height: 1.6;
-            padding: 12px; background: #f3f7fa; border-radius: 12px; min-height: 40px;
+            font-size: 1.05rem; color: #333; line-height: 1.6;
+            padding: 15px; background: #f8fbff; border-radius: 15px; min-height: 60px;
+            border: 1px solid #edf2f7;
         }
 
-        #clock { font-weight: 800; font-size: 1.2rem; }
+        #clock { font-weight: 900; font-size: 1.3rem; letter-spacing: -0.5px; }
     </style>
 </head>
 <body>
@@ -67,7 +76,7 @@
     </div>
 
     <div class="top-bar">
-        <div style="font-size: 0.9rem; font-weight: bold;">GCP 만료 (3/10) <span id="gcp-dday" class="dday-tag">-</span></div>
+        <div style="font-size: 1rem; font-weight: bold;">📅 2026-01-23</div>
         <div id="clock">00:00:00</div>
     </div>
 
@@ -75,17 +84,9 @@
         <div class="card">
             <div class="card-header">
                 <span class="card-title">📅 일정 & 건강</span>
-                <button class="voice-btn" onclick="startVoice('routine')">🎤 추가</button>
+                <button class="voice-btn" onclick="startVoice('routine')">🎤 추가/삭제</button>
             </div>
-            <div id="routine-result" class="result-area">예: 11시 40분에 영양제 먹기</div>
-        </div>
-
-        <div class="card">
-            <div class="card-header">
-                <span class="card-title">💡 창작 메모</span>
-                <button class="voice-btn" onclick="startVoice('idea')">🎤 기록</button>
-            </div>
-            <div id="idea-result" class="result-area">생각나는 아이디어를 말씀하세요. 추임새는 AI가 정리해 드려요.</div>
+            <div id="routine-result" class="result-area">"11시 40분에 영양제 먹기" 처럼 말씀하세요.</div>
         </div>
 
         <div class="card">
@@ -93,12 +94,24 @@
                 <span class="card-title">🥗 식단 기록</span>
                 <button class="voice-btn" onclick="startVoice('diet')">🎤 기록</button>
             </div>
-            <div id="diet-result" class="result-area">오늘 무엇을 드셨나요?</div>
+            <div class="dday-box">
+                <span style="font-size: 0.9rem; font-weight: bold; color: #555;">GCP 만료 (3/10)</span>
+                <span id="gcp-dday" class="dday-tag">D-46</span>
+            </div>
+            <div id="diet-result" class="result-area">오늘의 식단을 말씀하세요.</div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title">💡 창작 메모</span>
+                <button class="voice-btn" onclick="startVoice('idea')">🎤 기록</button>
+            </div>
+            <div id="idea-result" class="result-area">두서없이 말씀하셔도 AI가 핵심만 정리합니다.</div>
         </div>
     </div>
 
     <script>
-        // 한국 시간 시계 및 D-Day 설정
+        // 1. 한국 시간 시계 및 D-Day 설정
         function updateDisplay() {
             const now = new Date();
             document.getElementById('clock').innerText = now.toLocaleTimeString('ko-KR', {
@@ -112,7 +125,7 @@
             document.getElementById('gcp-dday').innerText = `D-${diff}`;
         }
 
-        // 지능형 음성 인식 로직
+        // 2. 지능형 음성 인식 엔진
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         const recognition = new SpeechRecognition();
         recognition.lang = 'ko-KR';
@@ -128,40 +141,20 @@
             let transcript = event.results[0][0].transcript;
             const resEl = document.getElementById(`${currentTarget}-result`);
             
-            // 1. 음성 삭제 기능 (삭제, 지워, 취소 포함 시 초기화)
+            // [기능 1] 음성 삭제 (삭제, 지워, 취소 단어 포함 시)
             if (transcript.includes("삭제") || transcript.includes("지워") || transcript.includes("취소")) {
-                resEl.innerText = "삭제되었습니다.";
-                setTimeout(() => { resEl.innerText = "기록을 말씀하세요."; }, 1500);
+                resEl.innerText = "기록이 삭제되었습니다.";
+                resEl.style.color = "var(--accent)";
+                setTimeout(() => { 
+                    resEl.innerText = "기록을 말씀하세요."; 
+                    resEl.style.color = "#333";
+                }, 1500);
                 return;
             }
 
-            // 2. 창작 메모(아이디어) 지능형 요약 (추임새 제거)
+            // [기능 2] 아이디어 지능형 요약 (추임새 제거)
             if (currentTarget === 'idea') {
                 const fillers = ["음", "어", "그니까", "있잖아", "막", "약간", "저기", "그러니까", "어음"];
                 fillers.forEach(f => {
                     const regex = new RegExp(f + "\\s*", "g");
-                    transcript = transcript.replace(regex, "");
-                });
-                transcript = "📌 " + transcript.trim();
-            }
-
-            // 3. 일정 섹션 시간 파싱 (11시 40분 정확도 개선)
-            if (currentTarget === 'routine') {
-                const timeMatch = transcript.match(/(\d+)\s*시\s*(?:(\d+)\s*분)?/);
-                if (timeMatch) {
-                    const hh = timeMatch[1];
-                    const mm = timeMatch[2] || "00";
-                    const task = transcript.replace(timeMatch[0], "").replace(/오전|오후/g, "").trim();
-                    resEl.innerHTML = `<b style="color:var(--accent);">[${hh}:${mm}]</b> ${task}`;
-                    return;
-                }
-            }
-
-            resEl.innerText = transcript;
-        };
-
-        setInterval(updateDisplay, 1000);
-        updateDisplay();
-    </script>
-</body>
-</html>
+                    transcript = transcript.replace(
