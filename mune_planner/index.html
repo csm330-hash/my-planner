@@ -1,41 +1,136 @@
-<script>
-    // ... (앞부분 생략: 시간/디스플레이 로직은 동일) ...
-
-    recognition.onresult = (event) => {
-        const transcript = event.results[0][0].transcript;
-        const resultElement = document.getElementById(`${currentTarget}-result`);
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>mune planner v39</title>
+    <style>
+        body {
+            background-color: #1a2a44; color: white;
+            font-family: 'Pretendard', -apple-system, sans-serif;
+            display: flex; flex-direction: column; align-items: center;
+            min-height: 100vh; margin: 0; padding: 20px;
+        }
+        .container {
+            width: 100%; max-width: 400px; text-align: center;
+            padding: 30px; border-radius: 30px;
+            background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        .title-tag { font-size: 0.75rem; letter-spacing: 2px; color: #88aadd; margin-bottom: 5px; display: block; }
+        .subtitle { font-size: 0.85rem; color: #aaa; margin-bottom: 20px; font-style: italic; }
+        #clock { font-size: 3.5rem; font-weight: 800; margin-bottom: 25px; letter-spacing: -1px; }
         
-        // [삭제 명령 확인] 문장 끝에 '삭제', '지워', '취소'가 포함된 경우
-        if (transcript.includes("삭제") || transcript.includes("지워") || transcript.includes("취소")) {
-            resultElement.innerText = "기록을 삭제했습니다.";
-            resultElement.style.color = "#ff4444"; // 삭제 시 빨간색 표시
+        .milestone-item {
+            display: flex; justify-content: space-between;
+            margin-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.1);
+            padding-bottom: 8px; font-size: 0.95rem;
+        }
+        .section-card {
+            background: rgba(255, 255, 255, 0.08); border-radius: 20px;
+            padding: 15px; margin-top: 15px; text-align: left;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+        .section-title { font-weight: bold; color: #ffcc00; margin-bottom: 8px; font-size: 0.9rem; }
+        .voice-btn {
+            background: #ffcc00; border: none; padding: 6px 12px;
+            border-radius: 50px; font-weight: bold; cursor: pointer;
+            color: #1a2a44; font-size: 0.75rem; transition: 0.2s;
+        }
+        .voice-btn:active { transform: scale(0.95); opacity: 0.8; }
+        .result-text { font-size: 0.85rem; color: #ddd; margin-top: 8px; min-height: 1.2rem; line-height: 1.4; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <span class="title-tag">AI VISUAL CONTENT DIRECTOR</span>
+        <div class="subtitle">MUNE Professional Dashboard</div>
+        <div id="clock">00:00:00</div>
+        
+        <div class="milestone-item">
+            <span>GCP 만료 (3/10)</span>
+            <span id="gcp-dday" style="color:#ffcc00; font-weight:bold;">-</span>
+        </div>
+        <div class="milestone-item">
+            <span>예비창업패키지</span>
+            <span style="color:#ffcc00; font-weight:bold;">공고 대기</span>
+        </div>
+
+        <div class="section-card">
+            <span class="section-title">📅 일정 & 건강</span>
+            <button class="voice-btn" onclick="startVoice('routine')">🎤 음성 추가</button>
+            <div id="routine-result" class="result-text">예: 11시 40분에 약 먹기</div>
+        </div>
+
+        <div class="section-card">
+            <span class="section-title">💡 아이디어</span>
+            <button class="voice-btn" onclick="startVoice('idea')">🎤 음성 기록</button>
+            <div id="idea-result" class="result-text">생각나는 아이디어를 말씀하세요.</div>
+        </div>
+
+        <div class="section-card">
+            <span class="section-title">🥗 식단 기록</span>
+            <button class="voice-btn" onclick="startVoice('diet')">🎤 음성 기록</button>
+            <div id="diet-result" class="result-text">식단 내용을 말씀하세요.</div>
+        </div>
+    </div>
+
+    <script>
+        // 1. 한국 시간 시계 및 D-Day
+        function updateDisplay() {
+            const now = new Date();
+            document.getElementById('clock').innerText = now.toLocaleTimeString('ko-KR', {
+                timeZone: 'Asia/Seoul', hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit'
+            });
+            const gcpDate = new Date('2026-03-10T00:00:00');
+            const diff = Math.ceil((gcpDate - now) / (1000*60*60*24));
+            document.getElementById('gcp-dday').innerText = `D-${diff}`;
+        }
+
+        // 2. 음성 인식 및 정교한 파싱 (11시 40분 해결 버전)
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        const recognition = new SpeechRecognition();
+        recognition.lang = 'ko-KR';
+        let currentTarget = '';
+
+        function startVoice(target) {
+            currentTarget = target;
+            recognition.start();
+            document.getElementById(`${target}-result`).innerText = "듣고 있어요...";
+        }
+
+        recognition.onresult = (event) => {
+            const transcript = event.results[0][0].transcript;
+            const resEl = document.getElementById(`${currentTarget}-result`);
             
-            // 2초 뒤에 원래 안내 문구로 복구
-            setTimeout(() => {
-                resultElement.innerText = "다시 말씀해 주세요.";
-                resultElement.style.color = "#ddd";
-            }, 2000);
-            return; // 삭제 명령 수행 후 종료
-        }
+            // 삭제 명령어 처리
+            if (transcript.includes("삭제") || transcript.includes("지워")) {
+                resEl.innerText = "삭제되었습니다.";
+                setTimeout(() => { resEl.innerText = "다시 말씀해 주세요."; }, 1500);
+                return;
+            }
 
-        // [일반 기록 로직] - 이전 v37의 시간 파싱 기능 포함
-        let hour = "";
-        let minute = "00";
-        let task = transcript;
+            // [핵심] 시간과 분 파싱 (예: 11시 40분)
+            const timeMatch = transcript.match(/(\d+)\s*시\s*(?:(\d+)\s*분)?/);
+            
+            if (timeMatch) {
+                const hh = timeMatch[1];
+                const mm = timeMatch[2] || "00";
+                const task = transcript.replace(timeMatch[0], "").replace(/오전|오후/g, "").trim();
+                resEl.innerHTML = `<b style="color:#ffcc00;">[${hh}:${mm}]</b> ${task}`;
+            } else {
+                resEl.innerText = transcript;
+            }
+        };
 
-        const timeMatch = transcript.match(/(\d+)\s*시\s*(?:(\d+)\s*분)?/);
-        
-        resultElement.style.color = "#ffcc00"; // 기록 시 노란색 표시
-        if (timeMatch) {
-            hour = timeMatch[1];
-            minute = timeMatch[2] || "00";
-            task = transcript.replace(timeMatch[0], "").replace(/오전|오후/g, "").trim();
-            resultElement.innerHTML = `<b>[${hour}:${minute}]</b> ${task}`;
-        } else {
-            resultElement.innerText = transcript;
-        }
-    };
-</script>
+        setInterval(updateDisplay, 1000);
+        updateDisplay();
+    </script>
+</body>
+</html>
+
 
 
 
