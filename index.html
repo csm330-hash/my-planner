@@ -114,8 +114,12 @@
             "세상에 하나뿐인 혜원님만의 세계관, 그 발걸음을 응원합니다. ❤️"
         ];
 
-        function setRandomCheer() { document.getElementById('cheerMessage').innerText = cheerMessages[Math.floor(Math.random() * cheerMessages.length)]; }
-        function getSeoulDateStr() { const now = new Date(); return new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Seoul' })).toISOString().split('T')[0]; }
+        function getSeoulDateStr() {
+    const now = new Date();
+    // 현재 UTC 시간(ms)에 9시간(ms)을 더해 한국 시간으로 변환
+    const kstDate = new Date(now.getTime() + (9 * 60 * 60 * 1000));
+    return kstDate.toISOString().split('T')[0];
+}
 
         // [v80 핵심] 강제 날짜 동기화
         function checkAndSyncDate() {
@@ -155,12 +159,10 @@
             loadDayData(val);
         }
 
-        function getSeoulDateStr() {
-    const now = new Date();
-    // 현재 UTC 시간(ms)에 9시간(ms)을 더해 한국 시간으로 변환
-    const kstDate = new Date(now.getTime() + (9 * 60 * 60 * 1000));
-    return kstDate.toISOString().split('T')[0];
-}
+        function updateDisplay() {
+            const now = new Date();
+            const seoulNow = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Seoul' }));
+            const currentStr = `${String(seoulNow.getHours()).padStart(2, '0')}:${String(seoulNow.getMinutes()).padStart(2, '0')}`;
             
             document.getElementById('clock').innerText = seoulNow.toLocaleTimeString('ko-KR', { hour12: false });
             
