@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>mune planner v76</title>
+    <title>mune planner v77</title>
     <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
     <style>
         :root { --bg-color: #a2c2e1; --card-bg: #ffffff; }
@@ -106,7 +106,10 @@
     <audio id="alarmSound" src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg" preload="auto"></audio>
 
     <script>
-        let lastCopiedData = null; let lastCopiedType = null; let ringedAlarms = new Set(); let isAudioUnlocked = false; let currentPlannerDate = "";
+        let lastCopiedData = null; let lastCopiedType = null; let ringedAlarms = new Set(); let isAudioUnlocked = false; 
+        let currentPlannerDate = ""; // 현재 로드된 날짜
+        let systemToday = ""; // 실제 세계의 오늘 날짜
+
         const cheerMessages = [
             "AI 비주얼 콘텐츠 디렉터 혜원님, 오늘 하루도 빛나는 창작을 응원해요! ✨",
             "루미와 모찌가 혜원님의 오늘을 함께할 준비가 되었어요. 즐거운 하루 되세요! ㅋ",
@@ -123,28 +126,36 @@
         function setRandomCheer() { document.getElementById('cheerMessage').innerText = cheerMessages[Math.floor(Math.random() * cheerMessages.length)]; }
         function getSeoulDateStr() { const now = new Date(); return new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Seoul' })).toISOString().split('T')[0]; }
 
-        // [v76 핵심] 실시간 날짜 감지 로직
+        // [v77 핵심 수정] 날짜 감지 및 자동 업데이트 로직
         function updateDisplay() {
             const now = new Date();
             const seoulNow = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Seoul' }));
-            const todayStr = getSeoulDateStr();
+            const nowSystemToday = getSeoulDateStr(); // 현재 실제 날짜
             const currentStr = `${String(seoulNow.getHours()).padStart(2, '0')}:${String(seoulNow.getMinutes()).padStart(2, '0')}`;
             
             document.getElementById('clock').innerText = seoulNow.toLocaleTimeString('ko-KR', { hour12: false });
             
-            // 날짜가 바뀌었는지 즉시 체크 (시간에 상관없이!)
-            if (currentPlannerDate !== "" && currentPlannerDate !== todayStr) {
-                console.log("날짜 변경 감지: " + currentPlannerDate + " -> " + todayStr);
-                document.getElementById('currentDateInput').value = todayStr;
-                currentPlannerDate = todayStr;
-                loadDayData(todayStr);
-                setRandomCheer();
+            // 1. 초기 시스템 날짜 설정
+            if (systemToday === "") systemToday = nowSystemToday;
+
+            // 2. 자정 체크: 실제 날짜가 바뀌었을 때만 실행
+            if (systemToday !== nowSystemToday) {
+                // 혜원님이 '어제의 오늘' 페이지를 보고 있었다면, 자동으로 '진짜 오늘'로 이동
+                if (currentPlannerDate === systemToday) {
+                    console.log("자정이 되어 자동으로 날짜를 업데이트합니다.");
+                    document.getElementById('currentDateInput').value = nowSystemToday;
+                    currentPlannerDate = nowSystemToday;
+                    loadDayData(nowSystemToday);
+                    setRandomCheer();
+                }
+                systemToday = nowSystemToday; // 시스템 기준 날짜 업데이트
             }
 
+            // 3. 앱 처음 켰을 때 날짜 로드
             if(!document.getElementById('currentDateInput').value) {
-                document.getElementById('currentDateInput').value = todayStr;
-                currentPlannerDate = todayStr;
-                loadDayData(todayStr);
+                document.getElementById('currentDateInput').value = nowSystemToday;
+                currentPlannerDate = nowSystemToday;
+                loadDayData(nowSystemToday);
             }
 
             if (now.getSeconds() === 0) ringedAlarms.clear();
@@ -161,9 +172,10 @@
             document.getElementById('gcp-dday').innerText = `D-${diff}`;
         }
 
-        // --- 기타 기능 유지 ---
+        // --- 기타 기능은 이전과 동일 (안정화됨) ---
         function loadDayData(date) {
-            currentPlannerDate = date; const saved = localStorage.getItem(`mune_data_${date}`);
+            currentPlannerDate = date; // 현재 플래너가 보고 있는 날짜 저장
+            const saved = localStorage.getItem(`mune_data_${date}`);
             document.getElementById('routine-list').innerHTML = ''; document.getElementById('health-list').innerHTML = '';
             document.getElementById('idea-text').value = ''; document.getElementById('diet-text').value = '';
             if (saved) {
@@ -237,5 +249,6 @@
     </script>
 </body>
 </html>
+
 
 
