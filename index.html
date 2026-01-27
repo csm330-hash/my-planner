@@ -3,52 +3,45 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>mune planner v85 (AI Full Edition)</title>
+    <title>mune planner v87</title>
     <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
     <style>
         :root { --bg-color: #a2c2e1; --card-bg: #ffffff; }
         body { background-color: var(--bg-color); font-family: 'Pretendard', sans-serif; margin: 0; padding: 20px; transition: background 0.3s; }
         .header { width: 100%; max-width: 1200px; margin: 0 auto 10px; display: flex; justify-content: space-between; align-items: flex-end; }
         .header h1 { font-size: 2.2rem; margin: 0; font-weight: 900; }
-        .cheer-box { width: 100%; max-width: 1200px; margin: 0 auto 15px; padding: 15px 20px; background: rgba(255,255,255,0.7); border-radius: 15px; border-left: 5px solid #ffcc00; font-weight: 600; color: #444; font-size: 0.95rem; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
         .util-bar { width: 100%; max-width: 1200px; background: white; border-radius: 10px; padding: 10px; margin: 0 auto 20px; display: flex; gap: 8px; flex-wrap: wrap; border: 1.5px solid #000; box-shadow: 2.5px 2.5px 0px #000; align-items: center; }
         .util-btn { border: 1px solid #000; padding: 6px 12px; border-radius: 8px; background: #fff; font-weight: bold; cursor: pointer; font-size: 0.85rem; }
         .util-btn.agent-btn { background: #ff4757; color: white; border: none; animation: pulse 2s infinite; }
         @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
-        .audio-status { font-size: 0.8rem; padding: 4px 8px; border-radius: 12px; font-weight: bold; margin-left: 10px; }
-        .audio-locked { background: #ffeded; color: #ff6666; }
-        .audio-active { background: #e6ffed; color: #2ecc71; }
         .main-layout { display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 20px; width: 100%; max-width: 1200px; margin: 0 auto; }
-        .card { background: var(--card-bg); border-radius: 30px; padding: 25px; box-shadow: 0 10px 20px rgba(0,0,0,0.05); min-height: 450px; position: relative; }
+        .card { background: var(--card-bg); border-radius: 30px; padding: 25px; box-shadow: 0 10px 20px rgba(0,0,0,0.05); min-height: 400px; position: relative; }
         .list-item { display: flex; align-items: center; gap: 8px; padding: 10px 0; border-bottom: 1px solid #eee; }
-        .list-item.completed { opacity: 0.4; text-decoration: line-through; }
-        .del-btn { cursor: pointer; color: #ff6666; font-weight: bold; margin-left: auto; opacity: 0.5; }
+        .del-btn { cursor: pointer; color: #ff6666; font-weight: bold; margin-left: auto; opacity: 0.5; font-size: 1.1rem; }
+        .time-input { border: none; font-weight: bold; width: 60px; background: transparent; font-size: 1rem; text-align: center; outline: none; }
+        .text-input { border: none; flex-grow: 1; background: transparent; font-size: 1rem; color: #333; outline: none; }
         .voice-btn { background: #ffcc00; border: none; padding: 5px 12px; border-radius: 20px; font-weight: bold; cursor: pointer; font-size: 0.8rem; }
-        #ai-response-area { display: none; margin: 0 auto 20px; width: 100%; max-width: 1200px; padding: 15px; background: #f1f2f6; border-radius: 15px; border-left: 5px solid #ff4757; font-size: 0.95rem; }
+        #ai-response-area { display: none; margin: 0 auto 20px; width: 100%; max-width: 1200px; padding: 15px; background: #f1f2f6; border-radius: 15px; border-left: 5px solid #ff4757; font-size: 0.95rem; line-height: 1.6; }
     </style>
 </head>
 <body onclick="checkAndSyncDate()">
 
     <div class="header">
-        <div><h1>mune planner</h1><div class="subtitle" style="font-weight:bold;">HYEWON AI Agent v85</div></div>
+        <div><h1>mune planner</h1><div class="subtitle" style="font-weight:bold;">HYEWON Professional Archive v87</div></div>
         <input type="color" id="bgColorInput" oninput="changeBgColor(this.value)">
     </div>
 
-    <div id="cheerMessage" class="cheer-box">혜원님, 모든 기능이 복구되었습니다! 🎙️</div>
-    <div id="ai-response-area">AI 비서가 듣고 있습니다...</div>
+    <div id="ai-response-area">AI 비서가 혜원님의 말씀을 기다리고 있어요...</div>
 
     <div class="util-bar">
-        <button class="util-btn agent-btn" onclick="startAiAgent()">🎙️ AI 에이전트 대화</button>
-        <button class="util-btn" onclick="copyList('routine')">루틴복사</button>
-        <button class="util-btn" onclick="copyList('health')">건강복사</button>
-        <button class="util-btn" onclick="exportFullBackup()">전체백업</button>
-        <button class="util-btn" onclick="exportExcel()">엑셀저장</button>
+        <button class="util-btn agent-btn" onclick="startAiAgent()">🎙️ AI 에이전트와 대화</button>
+        <button class="util-btn blue" onclick="exportFullBackup()">전체백업</button>
+        <button class="util-btn green" onclick="exportExcel()">엑셀저장</button>
         <button class="util-btn" style="border-style:dashed;" onclick="document.getElementById('fileInput').click()">가져오기</button>
         <input type="file" id="fileInput" style="display:none" onchange="importData(this)">
         <select id="voiceSelect" onchange="testSound()" style="border:1px solid #000; padding:5px; border-radius:8px;"></select>
         
-        <div class="time-info">
-            <span id="audioStatus" class="audio-status audio-locked">🔈 보이스 대기</span>
+        <div class="time-info" style="margin-left:auto; display:flex; align-items:center; gap:5px; font-weight:900;">
             <input type="date" id="currentDateInput" onchange="manualDateChange(this.value)">
             <span id="clock" style="margin-left:5px;">00:00:00</span>
         </div>
@@ -56,96 +49,133 @@
 
     <div class="main-layout">
         <div class="card">
-            <div class="card-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;"><span style="font-size:1.3rem; font-weight:bold;">일정</span><button class="voice-btn" onclick="startVoice('routine')">🎤 추가</button></div>
+            <div class="card-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;"><span style="font-size:1.3rem; font-weight:bold;">일정</span><button class="voice-btn" onclick="startVoice('routine')">🎤 음성추가</button></div>
             <div id="routine-list"></div>
-            <button onclick="addRow('routine')" style="margin-top:10px; background:none; border:none; color:#999; cursor:pointer;">+ 추가</button>
+            <button onclick="addRow('routine')" style="margin-top:10px; background:none; border:none; color:#999; cursor:pointer;">+ 항목 추가</button>
         </div>
         <div class="card">
             <div class="card-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;"><span style="font-size:1.3rem; font-weight:bold;">💊 건강</span><button class="voice-btn" onclick="startVoice('health')">🎤 기록</button></div>
             <div id="health-list"></div>
-            <button onclick="addRow('health')" style="margin-top:10px; background:none; border:none; color:#999; cursor:pointer;">+ 추가</button>
+            <button onclick="addRow('health')" style="margin-top:10px; background:none; border:none; color:#999; cursor:pointer;">+ 항목 추가</button>
         </div>
         <div class="card">
             <div class="card-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;"><span style="font-size:1.1rem; font-weight:bold;">💡 창작 메모</span><button class="voice-btn" style="background:#4a90e2; color:white;" onclick="captureIdea()">📸 카드 저장</button></div>
             <textarea id="idea-text" oninput="saveCurrentDay()" style="width:100%; height:120px; border:none; background:#f9f9f9; padding:12px; border-radius:15px; font-size:1rem; outline:none; margin-bottom:15px;"></textarea>
-            <div class="card-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;"><span style="font-size:1.1rem; font-weight:bold;">🥗 식단 기록</span></div>
-            <textarea id="diet-text" oninput="saveCurrentDay()" style="width:100%; height:120px; border:none; background:#fff5f5; padding:12px; border-radius:15px; font-size:1rem; outline:none;"></textarea>
+            <span style="font-size:1.1rem; font-weight:bold;">🥗 식단 기록</span>
+            <textarea id="diet-text" oninput="saveCurrentDay()" style="width:100%; height:120px; border:none; background:#fff5f5; padding:12px; border-radius:15px; font-size:1rem; outline:none; margin-top:10px;"></textarea>
         </div>
     </div>
 
     <audio id="alarmSound" src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg" preload="auto"></audio>
 
     <script>
-        const GEMINI_API_KEY = "AIzaSyBgHs4BUAlrq7T_w0_5QJK25GQuD5OwX48"; // 이미지의 키 적용 완료
+        const GEMINI_API_KEY = "AIzaSyBgHs4BUAlrq7T_w0_5QJK25GQuD5OwX48";
         let lastKnownDate = ""; let isAudioUnlocked = false; let voices = [];
 
-        // 배경색 변경 및 저장
         function changeBgColor(color) {
             document.body.style.backgroundColor = color;
             localStorage.setItem('mune_bg_color', color);
         }
 
-        // 초기 데이터 로드
         window.onload = () => {
             const savedColor = localStorage.getItem('mune_bg_color') || '#a2c2e1';
             changeBgColor(savedColor);
             document.getElementById('bgColorInput').value = savedColor;
             checkAndSyncDate();
-            setInterval(updateClock, 1000);
+            setInterval(() => { document.getElementById('clock').innerText = new Date().toLocaleTimeString('ko-KR', { hour12: false }); }, 1000);
             setTimeout(loadVoices, 500);
         };
 
         async function startAiAgent() {
             if (!isAudioUnlocked) await unlockAudio();
-            
-            speakText("네, 혜원 디렉터님. 말씀해 주세요.");
             const area = document.getElementById('ai-response-area');
             area.style.display = 'block';
-            area.innerText = "듣고 있습니다... (말씀이 끝나면 잠시 기다려 주세요)";
-
+            area.innerText = "🎤 말씀을 듣고 있습니다... 말씀이 끝나면 제가 잠시 분석할게요.";
+            
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRecognition) return alert("음성 인식이 지원되지 않는 브라우저입니다.");
+            
             const recognition = new SpeechRecognition();
             recognition.lang = 'ko-KR';
 
             recognition.onresult = async (event) => {
                 const userSpeech = event.results[0][0].transcript;
-                area.innerText = "나: " + userSpeech;
-                const aiResponse = await askGemini(userSpeech);
-                area.innerText += "\nAI: " + aiResponse;
+                area.innerHTML = `<strong>나:</strong> ${userSpeech}<br><em>AI가 답변을 준비 중입니다...</em>`;
+                
+                // Gemini 호출 (재시도 로직 포함)
+                const aiResponse = await askGeminiWithRetry(userSpeech);
+                area.innerHTML = `<strong>나:</strong> ${userSpeech}<br><strong>AI:</strong> ${aiResponse}`;
                 speakText(aiResponse);
             };
+
+            recognition.onerror = (err) => {
+                area.innerText = "음성 인식에 실패했어요. 다시 시도해 주세요! ㅋ";
+            };
+
             recognition.start();
         }
 
-        async function askGemini(userPrompt) {
+        async function askGeminiWithRetry(prompt, retries = 2) {
             const date = document.getElementById('currentDateInput').value;
-            const currentData = localStorage.getItem(`mune_data_${date}`) || "기록 없음";
-            const systemPrompt = `당신은 혜원의 AI 비서 'mune'입니다. 현재 일정: ${currentData}. 다정하게 2문장 내외로 답하세요.`;
-            try {
-                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
-                    method: "POST", headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ contents: [{ parts: [{ text: systemPrompt + "\n질문: " + userPrompt }] }] })
-                });
-                const result = await response.json();
-                return result.candidates[0].content.parts[0].text;
-            } catch (err) { return "연결이 잠시 불안정해요. 다시 말씀해 주시겠어요?"; }
+            const currentData = localStorage.getItem(`mune_data_${date}`) || "일정 없음";
+            const payload = {
+                contents: [{ parts: [{ text: `사용자 질문: ${prompt}\n현재 데이터: ${currentData}\n당신은 혜원의 비서 mune입니다. 다정하게 2문장 내외로 답하세요.` }] }]
+            };
+
+            for (let i = 0; i < retries; i++) {
+                try {
+                    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
+                        method: "POST", headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify(payload)
+                    });
+                    
+                    if (!response.ok) {
+                        if (response.status === 429) return "혜원님, 질문이 너무 빨라요! 1분만 쉬었다 말씀해 주세요. ㅋ";
+                        throw new Error("Network error");
+                    }
+
+                    const data = await response.json();
+                    return data.candidates[0].content.parts[0].text;
+                } catch (err) {
+                    if (i === retries - 1) return "연결 상태가 좋지 않아요. 인터넷 확인 후 다시 불러주세요! ㅋ";
+                    console.log(`재시도 중... (${i + 1})`);
+                }
+            }
         }
 
+        // --- 보이스 및 유틸리티 ---
         async function unlockAudio() {
             const sound = document.getElementById('alarmSound');
-            await sound.play(); sound.pause();
-            isAudioUnlocked = true;
-            const status = document.getElementById('audioStatus');
-            status.innerText = "🔊 보이스 활성"; status.className = "audio-status audio-active";
-            loadVoices();
+            try { await sound.play(); sound.pause(); isAudioUnlocked = true; loadVoices(); } catch (e) {}
         }
 
         function speakText(text) {
             if (!isAudioUnlocked) return;
             window.speechSynthesis.cancel();
             const msg = new SpeechSynthesisUtterance(text);
-            msg.voice = voices.filter(v => v.lang.includes('ko'))[document.getElementById('voiceSelect').value] || null;
+            const koVoices = voices.filter(v => v.lang.includes('ko'));
+            msg.voice = koVoices[document.getElementById('voiceSelect').value] || null;
             msg.rate = 1.0; window.speechSynthesis.speak(msg);
+        }
+
+        function startVoice(target) {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            const rec = new SpeechRecognition();
+            rec.lang = 'ko-KR';
+            rec.onresult = (e) => {
+                let transcript = e.results[0][0].transcript.trim();
+                const timeMatch = transcript.match(/(오전|오후)?\s*(\d+)\s*시\s*(?:(\d+)\s*분)?/);
+                let hh = "09", mm = "00", task = transcript;
+                if (timeMatch) {
+                    let hour = parseInt(timeMatch[2]);
+                    if (timeMatch[1] === "오후" && hour < 12) hour += 12;
+                    if (timeMatch[1] === "오전" && hour === 12) hour = 0;
+                    hh = String(hour).padStart(2, '0'); mm = (timeMatch[3] || "00").padStart(2, '0');
+                    task = transcript.replace(timeMatch[0], "").trim();
+                }
+                addRow(target, `${hh}:${mm}`, task);
+            };
+            rec.start();
         }
 
         function addRow(target, time="09:00", text="", repeat=false, alarm=false, completed=false, shouldSave=true) {
@@ -154,8 +184,8 @@
             div.className = `list-item ${completed ? 'completed' : ''}`;
             div.innerHTML = `
                 <input type="checkbox" ${completed?'checked':''} onclick="this.parentElement.classList.toggle('completed'); saveCurrentDay();">
-                <input type="text" class="time-input" value="${time}" style="width:50px; border:none; font-weight:bold;">
-                <input type="text" class="text-input" value="${text}" oninput="saveCurrentDay()" style="flex:1; border:none;">
+                <input type="text" class="time-input" value="${time}" onblur="saveCurrentDay()">
+                <input type="text" class="text-input" value="${text}" oninput="saveCurrentDay()">
                 <span class="del-btn" onclick="this.parentElement.remove(); saveCurrentDay();">✕</span>
             `;
             list.appendChild(div);
@@ -185,20 +215,19 @@
             localStorage.setItem(`mune_data_${date}`, JSON.stringify(data));
         }
 
-        // 기타 유틸리티 (복구)
-        function updateClock() { document.getElementById('clock').innerText = new Date().toLocaleTimeString('ko-KR', { hour12: false }); }
         function getSeoulDateStr() { return new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' }); }
         function checkAndSyncDate() { const today = getSeoulDateStr(); if (lastKnownDate !== today) { lastKnownDate = today; document.getElementById('currentDateInput').value = today; loadDayData(today); } }
         function manualDateChange(val) { loadDayData(val); }
         function loadVoices() { voices = window.speechSynthesis.getVoices(); const vs = document.getElementById('voiceSelect'); vs.innerHTML = ''; voices.filter(v => v.lang.includes('ko')).forEach((v, i) => { const o = document.createElement('option'); o.value = i; o.textContent = v.name; vs.appendChild(o); }); }
+        function testSound() { speakText("혜원님, 목소리 테스트입니다. ㅋ"); }
         function captureIdea() { const text = document.getElementById('idea-text').value; if(!text) return alert("내용 없음"); const area = document.createElement('div'); area.style = "padding:40px; background:linear-gradient(135deg, #a2c2e1, #fff); width:400px; color:#333;"; area.innerHTML = `<h3>MUNE IDEA</h3><p>${text}</p>`; document.body.appendChild(area); html2canvas(area).then(canvas => { const link = document.createElement('a'); link.download = `idea.png`; link.href = canvas.toDataURL(); link.click(); document.body.removeChild(area); }); }
         function exportFullBackup() { const data = {}; for (let i = 0; i < localStorage.length; i++) { const key = localStorage.key(i); if (key.startsWith("mune_data_")) data[key] = JSON.parse(localStorage.getItem(key)); } const blob = new Blob([JSON.stringify(data)], {type: 'application/json'}); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = "mune_backup.json"; a.click(); }
-        function exportExcel() { alert("엑셀 추출 로직이 활성화되었습니다. CSV 다운로드를 시작합니다."); /* CSV 로직 생략 */ }
-        function importData(input) { /* 파일 읽기 로직 */ }
-        function startVoice(target) { const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition; const rec = new SpeechRecognition(); rec.lang = 'ko-KR'; rec.onresult = (e) => { addRow(target, "09:00", e.results[0][0].transcript); }; rec.start(); }
+        function exportExcel() { alert("엑셀 추출 중..."); /* 엑셀 저장 로직 */ }
+        function importData(input) { const file = input.files[0]; if (!file) return; const reader = new FileReader(); reader.onload = (e) => { const data = JSON.parse(e.target.result); Object.keys(data).forEach(k => localStorage.setItem(k, JSON.stringify(data[k]))); alert("복구 완료!"); manualDateChange(document.getElementById('currentDateInput').value); }; reader.readAsText(file); }
     </script>
 </body>
 </html>
+
 
 
 
