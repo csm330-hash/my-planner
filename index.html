@@ -3,49 +3,53 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>mune planner v114</title>
+    <title>mune planner v116</title>
     <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
     <style>
-        :root { --bg-color: #a2c2e1; --card-bg: #ffffff; }
+        :root { --bg-color: #a2c2e1; --card-bg: #ffffff; --point-color: #4a90e2; }
         body { background-color: var(--bg-color); font-family: 'Pretendard', sans-serif; margin: 0; padding: 20px; transition: background 0.3s; }
         
-        /* 날짜창 아이콘 제거 */
+        /* [핵심] 날짜창 아이콘 완전 박멸 CSS */
         input[type="date"] {
             -webkit-appearance: none; appearance: none;
             background: #f0f0f0 !important; border: 1px solid #ccc;
             border-radius: 8px; padding: 8px 12px; font-weight: 900;
+            background-image: none !important;
         }
         input[type="date"]::-webkit-calendar-picker-indicator { display: none !important; }
 
         .header { width: 100%; max-width: 1200px; margin: 0 auto 10px; display: flex; justify-content: space-between; align-items: flex-end; }
-        .header h1 { font-size: 2.2rem; margin: 0; font-weight: 900; }
+        .header h1 { font-size: 2.2rem; margin: 0; font-weight: 900; color: #333; }
+        
         .util-bar { width: 100%; max-width: 1200px; background: white; border-radius: 10px; padding: 10px; margin: 0 auto 20px; display: flex; gap: 6px; flex-wrap: wrap; border: 1.5px solid #000; box-shadow: 2.5px 2.5px 0px #000; align-items: center; }
         .util-btn { border: 1px solid #000; padding: 6px 12px; border-radius: 8px; background: #fff; font-weight: bold; cursor: pointer; font-size: 0.8rem; }
         
         .main-layout { display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 20px; width: 100%; max-width: 1200px; margin: 0 auto; }
-        .card { background: var(--card-bg); border-radius: 30px; padding: 25px; box-shadow: 0 10px 20px rgba(0,0,0,0.05); min-height: 400px; position: relative; }
+        .card { background: var(--card-bg); border-radius: 30px; padding: 25px; box-shadow: 0 10px 20px rgba(0,0,0,0.05); min-height: 400px; position: relative; display: flex; flex-direction: column; }
         .list-item { display: flex; align-items: center; gap: 5px; padding: 8px 0; border-bottom: 1px solid #eee; }
         .list-item.completed { opacity: 0.4; text-decoration: line-through; }
         
-        /* [v114] 종 모양 알람 스위치 스타일 */
-        .alarm-label { cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; width: 30px; transition: 0.2s; filter: grayscale(1); opacity: 0.2; }
+        /* 선명한 종 모양 알람 스위치 */
+        .alarm-label { cursor: pointer; font-size: 1.2rem; display: flex; align-items: center; justify-content: center; width: 35px; opacity: 0.3; filter: grayscale(1); transition: 0.2s; }
         .alarm-check { display: none; }
-        .alarm-check:checked + span { filter: grayscale(0); opacity: 1; animation: ring 0.5s ease; }
-        @keyframes ring { 0% { transform: rotate(0); } 25% { transform: rotate(20deg); } 50% { transform: rotate(-20deg); } 75% { transform: rotate(10deg); } 100% { transform: rotate(0); } }
+        .alarm-check:checked + span { filter: grayscale(0); opacity: 1; color: #FFD700; animation: ring 0.6s ease; }
+        @keyframes ring { 0% { transform: rotate(0); } 25% { transform: rotate(25deg); } 50% { transform: rotate(-25deg); } 100% { transform: rotate(0); } }
 
         .time-input { border: none; font-weight: bold; width: 55px; background: transparent; font-size: 1rem; text-align: center; outline: none; }
         .text-input { border: none; flex-grow: 1; background: transparent; font-size: 1rem; color: #333; outline: none; }
         .del-btn { cursor: pointer; color: #ff6666; font-weight: bold; margin-left: auto; opacity: 0.5; font-size: 1.1rem; padding: 5px; }
         .voice-btn { background: #eee; border: 1px solid #000; padding: 5px 12px; border-radius: 20px; font-weight: bold; cursor: pointer; font-size: 0.75rem; }
         
-        .overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 999; }
+        textarea { width: 100%; border: none; padding: 12px; border-radius: 15px; font-size: 1rem; outline: none; resize: none; box-sizing: border-box; }
+        
         #multiPasteModal { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 30px; border-radius: 20px; border: 2px solid #000; z-index: 1000; width: 90%; max-width: 400px; }
+        .overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 999; }
     </style>
 </head>
 <body>
 
     <div class="header">
-        <div><h1>mune planner</h1><div class="subtitle" style="font-weight:bold;">Director Master v114</div></div>
+        <div><h1>mune planner</h1><div class="subtitle" style="font-weight:bold; color:#555;">Director Master v116</div></div>
         <input type="color" id="bgColorInput" oninput="changeBgColor(this.value)">
     </div>
 
@@ -71,28 +75,29 @@
         <div class="card">
             <div class="card-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;"><span style="font-size:1.3rem; font-weight:bold;">일정</span><button class="voice-btn" onclick="startVoice('routine')">🎤 음성추가</button></div>
             <div id="routine-list"></div>
-            <button onclick="addRow('routine')" style="margin-top:10px; background:none; border:none; color:#999; cursor:pointer;">+ 항목 추가</button>
+            <button onclick="addRow('routine')" style="margin-top:auto; padding:10px; background:none; border:none; color:#999; cursor:pointer;">+ 항목 추가</button>
         </div>
         <div class="card">
             <div class="card-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;"><span style="font-size:1.3rem; font-weight:bold;">건강</span><button class="voice-btn" onclick="startVoice('health')">🎤 기록</button></div>
             <div id="health-list"></div>
-            <button onclick="addRow('health')" style="margin-top:10px; background:none; border:none; color:#999; cursor:pointer;">+ 항목 추가</button>
+            <button onclick="addRow('health')" style="margin-top:auto; padding:10px; background:none; border:none; color:#999; cursor:pointer;">+ 항목 추가</button>
         </div>
         <div class="card">
             <div class="card-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;"><span style="font-size:1.1rem; font-weight:bold;">창작 메모</span><button class="voice-btn" onclick="startTextVoice('idea-text')">🎤 음성입력</button></div>
             <div style="background:#f0f4f8; padding:8px; border-radius:10px; margin-bottom:10px; display:flex; justify-content:space-between; font-weight:900; color:#4a90e2; font-size:0.8rem;">
                 <span>GCP 만료 (3/10)</span><span id="gcp-dday">D-</span>
             </div>
-            <textarea id="idea-text" oninput="saveCurrentDay()" placeholder="오늘의 아이디어..." style="width:100%; height:100px; border:none; background:#f9f9f9; padding:12px; border-radius:15px; font-size:1rem; outline:none; margin-bottom:15px;"></textarea>
+            <textarea id="idea-text" oninput="saveCurrentDay()" placeholder="오늘의 아이디어..." style="height:100px; background:#f9f9f9; margin-bottom:15px;"></textarea>
+            
             <div class="card-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;"><span style="font-size:1.1rem; font-weight:bold;">식단 기록</span><button class="voice-btn" onclick="startTextVoice('diet-text')">🎤 음성입력</button></div>
-            <textarea id="diet-text" oninput="saveCurrentDay()" placeholder="식단 기록하기..." style="width:100%; height:120px; border:none; background:#fff5f5; padding:12px; border-radius:15px; font-size:1rem; outline:none; margin-top:10px;"></textarea>
+            <textarea id="diet-text" oninput="saveCurrentDay()" placeholder="식단 기록하기..." style="height:120px; background:#fff5f5;"></textarea>
         </div>
     </div>
 
     <div id="overlay" class="overlay" onclick="closeModals()"></div>
     <div id="multiPasteModal">
         <h3 style="margin-top:0;">날짜 선택 후 붙여넣기</h3>
-        <div id="dateGrid" class="date-grid" style="display:grid; grid-template-columns:repeat(3, 1fr); gap:10px; margin:15px 0; max-height:200px; overflow-y:auto;"></div>
+        <div id="dateGrid" style="display:grid; grid-template-columns:repeat(3, 1fr); gap:10px; margin:15px 0; max-height:200px; overflow-y:auto;"></div>
         <button class="util-btn" style="width:100%; background:#000; color:#fff;" onclick="applyMultiPaste()">복사 실행</button>
     </div>
 
@@ -120,12 +125,20 @@
             document.getElementById('gcp-dday').innerText = diff > 0 ? `D-${diff}` : `D+${Math.abs(diff)}`;
         }
 
+        // [핵심] 음성 알람 시스템
         function checkAlarms(now) {
             const currentTime = now.getHours().toString().padStart(2, '0') + ":" + now.getMinutes().toString().padStart(2, '0');
             document.querySelectorAll('.list-item:not(.completed)').forEach(item => {
                 const alarmCheck = item.querySelector('.alarm-check');
+                const taskText = item.querySelector('.text-input').value;
                 if (alarmCheck && alarmCheck.checked && item.querySelector('.time-input').value === currentTime && now.getSeconds() === 0) {
                     document.getElementById('alarmSound').play();
+                    setTimeout(() => {
+                        const msg = new SpeechSynthesisUtterance(`혜원님, ${taskText} 하실 시간입니다.`);
+                        msg.voice = voices.filter(v => v.lang.includes('ko'))[document.getElementById('voiceSelect').value] || null;
+                        msg.lang = 'ko-KR';
+                        window.speechSynthesis.speak(msg);
+                    }, 1200);
                 }
             });
         }
@@ -141,13 +154,12 @@
         }
         function stopReading() { window.speechSynthesis.cancel(); }
 
-        // [v114 핵심] 알람 벨 모양 버튼 적용된 행 추가 함수
         function addRow(target, time="09:00", text="", alarm=false, completed=false, shouldSave=true) {
             const list = document.getElementById(`${target}-list`);
             const div = document.createElement('div');
             div.className = `list-item ${completed ? 'completed' : ''}`;
             div.innerHTML = `
-                <input type="checkbox" ${completed?'checked':''} onclick="this.parentElement.classList.toggle('completed'); saveCurrentDay();" title="완료 체크">
+                <input type="checkbox" ${completed?'checked':''} onclick="this.parentElement.classList.toggle('completed'); saveCurrentDay();">
                 <label class="alarm-label">
                     <input type="checkbox" class="alarm-check" ${alarm?'checked':''} onclick="saveCurrentDay()">
                     <span>🔔</span>
@@ -170,7 +182,7 @@
             recognition.start();
         }
 
-        // --- 기존 데이터 로직 ---
+        // --- 데이터 관리 로직 ---
         function loadDayData(date) {
             const saved = localStorage.getItem(`mune_data_${date}`);
             document.querySelectorAll('#routine-list, #health-list').forEach(l => l.innerHTML = '');
@@ -191,11 +203,11 @@
             };
             localStorage.setItem(`mune_data_${date}`, JSON.stringify(data));
         }
-        function copyList(target) { lastCopiedType = target; lastCopiedData = Array.from(document.querySelectorAll(`#${target}-list .list-item`)).map(i => ({ time: i.querySelector('.time-input').value, text: i.querySelector('.text-input').value, alarm: i.querySelector('.alarm-check').checked, completed: i.classList.contains('completed') })); alert("복사 완료!"); }
+        function copyList(target) { lastCopiedType = target; lastCopiedData = Array.from(document.querySelectorAll(`#${target}-list .list-item`)).map(i => ({ time: i.querySelector('.time-input').value, text: i.querySelector('.text-input').value, alarm: i.querySelector('.alarm-check').checked, completed: i.classList.contains('completed') })); alert("목록 복사 완료!"); }
         function openMultiPaste() { if (!lastCopiedData) return alert("복사된 목록이 없습니다."); const grid = document.getElementById('dateGrid'); grid.innerHTML = ''; for (let i = 0; i < 14; i++) { const d = new Date(); d.setDate(new Date().getDate() + i); const s = d.toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' }); grid.innerHTML += `<label style="border:1px solid #ddd; padding:8px; border-radius:8px; font-size:0.8rem;"><input type="checkbox" value="${s}">${s.slice(5)}</label>`; } document.getElementById('multiPasteModal').style.display = 'block'; document.getElementById('overlay').style.display = 'block'; }
         function applyMultiPaste() { const dates = Array.from(document.querySelectorAll('#dateGrid input:checked')).map(cb => cb.value); dates.forEach(date => { const cur = JSON.parse(localStorage.getItem(`mune_data_${date}`)) || { routine: [], health: [], idea: "", diet: "" }; if (lastCopiedType === 'routine') cur.routine = JSON.parse(JSON.stringify(lastCopiedData)); else cur.health = JSON.parse(JSON.stringify(lastCopiedData)); localStorage.setItem(`mune_data_${date}`, JSON.stringify(cur)); }); alert("완료!"); closeModals(); loadDayData(document.getElementById('currentDateInput').value); }
         function closeModals() { document.getElementById('multiPasteModal').style.display = 'none'; document.getElementById('overlay').style.display = 'none'; }
-        function startVoice(target) { const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)(); recognition.lang = 'ko-KR'; recognition.onresult = (e) => { addRow(target, "09:00", e.results[0][0].transcript.trim()); }; recognition.start(); }
+        function startVoice(target) { const rec = new (window.SpeechRecognition || window.webkitSpeechRecognition)(); rec.lang = 'ko-KR'; rec.onresult = (e) => { addRow(target, "09:00", e.results[0][0].transcript.trim()); }; rec.start(); }
         function loadVoices() { voices = window.speechSynthesis.getVoices(); const vs = document.getElementById('voiceSelect'); vs.innerHTML = ''; voices.filter(v => v.lang.includes('ko')).forEach((v, i) => { const o = document.createElement('option'); o.value = i; o.textContent = v.name; vs.appendChild(o); }); }
         function manualDateChange(val) { loadDayData(val); }
         function checkAndSyncDate() { const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' }); if (lastKnownDate !== today) { lastKnownDate = today; document.getElementById('currentDateInput').value = today; loadDayData(today); } }
