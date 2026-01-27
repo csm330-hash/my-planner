@@ -3,18 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>mune planner v124</title>
+    <title>mune planner v125</title>
     <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
     <style>
         :root { --bg-color: #a2c2e1; --card-bg: #ffffff; }
         body { background-color: var(--bg-color); font-family: 'Pretendard', sans-serif; margin: 0; padding: 20px; transition: background 0.3s; }
         
-        /* 날짜창 아이콘 제거 */
-        input[type="date"] {
-            -webkit-appearance: none; appearance: none;
-            background: #f0f0f0 !important; border: 1px solid #ccc;
-            border-radius: 8px; padding: 8px 12px; font-weight: 900;
-        }
+        input[type="date"] { -webkit-appearance: none; appearance: none; background: #f0f0f0 !important; border: 1px solid #ccc; border-radius: 8px; padding: 8px 12px; font-weight: 900; }
         input[type="date"]::-webkit-calendar-picker-indicator { display: none !important; }
 
         .header { width: 100%; max-width: 1200px; margin: 0 auto 10px; display: flex; justify-content: space-between; align-items: flex-end; }
@@ -25,18 +20,9 @@
         .main-layout { display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 20px; width: 100%; max-width: 1200px; margin: 0 auto; }
         .card { background: var(--card-bg); border-radius: 30px; padding: 25px; box-shadow: 0 10px 20px rgba(0,0,0,0.05); min-height: 400px; position: relative; }
         .list-item { display: flex; align-items: center; gap: 5px; padding: 8px 0; border-bottom: 1px solid #eee; }
-        .list-item.completed { opacity: 0.4; text-decoration: line-through; }
         
-        /* 종 모양 알람 스위치 */
-        .alarm-toggle { 
-            cursor: pointer; font-size: 1.3rem; width: 35px; height: 35px;
-            display: flex; align-items: center; justify-content: center;
-            border-radius: 50%; transition: all 0.2s;
-            background: #f0f0f0; border: 1px solid transparent; opacity: 0.4; filter: grayscale(1);
-        }
-        .alarm-toggle.active { 
-            background: #fff9c4; border: 1px solid #FFD700; opacity: 1; filter: grayscale(0); box-shadow: 0 0 10px rgba(255,215,0,0.4); animation: bell-shake 0.5s ease;
-        }
+        .alarm-toggle { cursor: pointer; font-size: 1.3rem; width: 35px; height: 35px; display: flex; align-items: center; justify-content: center; border-radius: 50%; transition: all 0.2s; background: #f0f0f0; opacity: 0.4; filter: grayscale(1); }
+        .alarm-toggle.active { background: #fff9c4; border: 1px solid #FFD700; opacity: 1; filter: grayscale(0); animation: bell-shake 0.5s ease; }
         @keyframes bell-shake { 0%, 100% { transform: rotate(0); } 25% { transform: rotate(20deg); } 75% { transform: rotate(-20deg); } }
 
         .time-input { border: none; font-weight: bold; width: 55px; background: transparent; font-size: 1rem; text-align: center; outline: none; }
@@ -44,14 +30,14 @@
         .del-btn { cursor: pointer; color: #ff6666; font-weight: bold; margin-left: auto; opacity: 0.5; font-size: 1.1rem; padding: 5px; }
         .voice-btn { background: #eee; border: 1px solid #000; padding: 5px 12px; border-radius: 20px; font-weight: bold; cursor: pointer; font-size: 0.75rem; }
         
-        .wake-btn { background: #FFD700 !important; border: 2.5px solid #000 !important; font-size: 0.9rem !important; animation: pulse 1.5s infinite; }
+        .wake-btn { background: #FFD700 !important; border: 2.5px solid #000 !important; animation: pulse 1.5s infinite; }
         @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.03); } 100% { transform: scale(1); } }
     </style>
 </head>
 <body>
 
     <div class="header">
-        <div><h1>mune planner</h1><div class="subtitle" style="font-weight:bold;">Director Master v124</div></div>
+        <div><h1>mune planner</h1><div class="subtitle" style="font-weight:bold;">Director Master v125</div></div>
         <input type="color" id="bgColorInput" oninput="changeBgColor(this.value)">
     </div>
 
@@ -87,22 +73,18 @@
     <script>
         let lastKnownDate = ""; let voices = []; let isSystemWoke = false;
 
-        function changeBgColor(color) { document.body.style.backgroundColor = color; localStorage.setItem('mune_bg_color', color); }
-        
         window.onload = () => {
             const savedColor = localStorage.getItem('mune_bg_color') || '#a2c2e1';
-            changeBgColor(savedColor); document.getElementById('bgColorInput').value = savedColor;
-            updateClock(); setInterval(updateClock, 1000);
-            checkAndSyncDate(); 
+            document.body.style.backgroundColor = savedColor;
+            document.getElementById('bgColorInput').value = savedColor;
             
-            // 컴퓨터 목소리 목록 로드 보강
-            if (speechSynthesis.onvoiceschanged !== undefined) {
-                speechSynthesis.onvoiceschanged = loadVoices;
-            }
+            setInterval(updateClock, 1000);
+            checkAndSyncDate();
+            
+            if (speechSynthesis.onvoiceschanged !== undefined) speechSynthesis.onvoiceschanged = loadVoices;
             loadVoices();
         };
 
-        // [v124] 시스템 깨우기 함수 (필수 클릭)
         function wakeUpSystem() {
             const sound = document.getElementById('alarmSound');
             sound.play().then(() => {
@@ -110,47 +92,56 @@
                 isSystemWoke = true;
                 const btn = document.getElementById('wakeBtn');
                 btn.innerText = "✅ 알람 가동 중"; btn.style.background = "#2ecc71"; btn.style.animation = "none";
-                speakText("혜원 디렉터님, 비서 mune이 준비되었습니다.");
-            }).catch(e => alert("화면을 클릭하고 다시 버튼을 눌러주세요!"));
+                speakText("혜원 디렉터님, 비서 무네가 준비되었습니다.");
+            }).catch(e => alert("버튼을 다시 눌러주세요!"));
         }
 
         function updateClock() {
             const now = getSeoulTime();
-            document.getElementById('clock').innerText = now.toLocaleTimeString('ko-KR', { hour12: false });
-            // 정확히 00초에 알람 체크
-            if (now.getSeconds() === 0) {
-                checkAlarms(now);
+            const hh = String(now.getHours()).padStart(2, '0');
+            const mm = String(now.getMinutes()).padStart(2, '0');
+            const ss = String(now.getSeconds()).padStart(2, '0');
+            
+            document.getElementById('clock').innerText = `${hh}:${mm}:${ss}`;
+            
+            // 정확히 00초부터 02초 사이에 알람 체크 (누락 방지)
+            if (ss === "00") {
+                checkAlarms(hh, mm);
                 checkAndSyncDate();
             }
         }
 
         function getSeoulTime() { return new Date(new Date().toLocaleString("en-US", {timeZone: "Asia/Seoul"})); }
 
-        function checkAlarms(now) {
-            const currentTime = now.getHours().toString().padStart(2, '0') + ":" + now.getMinutes().toString().padStart(2, '0');
-            document.querySelectorAll('.list-item:not(.completed)').forEach(item => {
+        function checkAlarms(hh, mm) {
+            const currentTimeStr = `${hh}:${mm}`;
+            const activeItems = document.querySelectorAll('.list-item:not(.completed)');
+            
+            activeItems.forEach(item => {
                 const alarmBtn = item.querySelector('.alarm-toggle');
-                const timeVal = item.querySelector('.time-input').value.trim();
+                const timeInput = item.querySelector('.time-input');
                 const taskText = item.querySelector('.text-input').value;
-                
-                if (alarmBtn && alarmBtn.classList.contains('active') && timeVal === currentTime) {
-                    const sound = document.getElementById('alarmSound');
-                    sound.play();
-                    // 비프음 이후 1초 뒤에 목소리 알람
-                    setTimeout(() => {
-                        speakText(`혜원님, ${taskText} 하실 시간입니다.`);
-                    }, 1200);
+
+                if (alarmBtn && alarmBtn.classList.contains('active')) {
+                    // [정밀 비교] 공백을 제거하고 형식을 맞춘 뒤 비교
+                    const rowTime = timeInput.value.trim().replace(/\s/g, '');
+                    if (rowTime === currentTimeStr) {
+                        const sound = document.getElementById('alarmSound');
+                        sound.currentTime = 0;
+                        sound.play();
+                        setTimeout(() => { speakText(`혜원님, ${taskText} 하실 시간입니다.`); }, 1300);
+                    }
                 }
             });
         }
 
         function speakText(text) {
             if (!window.speechSynthesis) return;
-            window.speechSynthesis.cancel(); // 이전 음성 모두 취소
+            window.speechSynthesis.cancel();
             const msg = new SpeechSynthesisUtterance(text);
             const koVoices = voices.filter(v => v.lang.includes('ko'));
             msg.voice = koVoices[document.getElementById('voiceSelect').value] || null;
-            msg.rate = 1.0; msg.pitch = 1.1;
+            msg.pitch = 1.1; msg.rate = 1.0;
             window.speechSynthesis.speak(msg);
         }
 
@@ -174,15 +165,19 @@
             list.appendChild(div); if(shouldSave) saveCurrentDay();
         }
 
-        function formatTime(input) { let val = input.value.replace(/[^0-9]/g, ''); if (val.length === 3) input.value = "0" + val.slice(0, 1) + ":" + val.slice(1); else if (val.length === 4) input.value = val.slice(0, 2) + ":" + val.slice(2); }
+        function formatTime(input) { 
+            let val = input.value.replace(/[^0-9]/g, ''); 
+            if (val.length === 3) input.value = "0" + val.slice(0, 1) + ":" + val.slice(1); 
+            else if (val.length === 4) input.value = val.slice(0, 2) + ":" + val.slice(2); 
+        }
         function saveCurrentDay() { const date = document.getElementById('currentDateInput').value; if(!date) return; const data = { routine: Array.from(document.querySelectorAll('#routine-list .list-item')).map(i => ({ time: i.querySelector('.time-input').value, text: i.querySelector('.text-input').value, alarm: i.querySelector('.alarm-toggle').classList.contains('active'), completed: i.classList.contains('completed') })), health: Array.from(document.querySelectorAll('#health-list .list-item')).map(i => ({ time: i.querySelector('.time-input').value, text: i.querySelector('.text-input').value, alarm: i.querySelector('.alarm-toggle').classList.contains('active'), completed: i.classList.contains('completed') })), idea: document.getElementById('idea-text').value, diet: document.getElementById('diet-text').value }; localStorage.setItem(`mune_data_${date}`, JSON.stringify(data)); }
         function loadDayData(date) { const saved = localStorage.getItem(`mune_data_${date}`); document.querySelectorAll('#routine-list, #health-list').forEach(l => l.innerHTML = ''); if (saved) { const data = JSON.parse(saved); if (data.routine) data.routine.forEach(i => addRow('routine', i.time, i.text, i.alarm, i.completed, false)); if (data.health) data.health.forEach(i => addRow('health', i.time, i.text, i.alarm, i.completed, false)); if (data.idea) document.getElementById('idea-text').value = data.idea; if (data.diet) document.getElementById('diet-text').value = data.diet; } }
         function checkAndSyncDate() { const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' }); if (lastKnownDate !== today) { lastKnownDate = today; document.getElementById('currentDateInput').value = today; loadDayData(today); } }
         function manualDateChange(val) { loadDayData(val); }
         function readAll() { speakText("오늘의 일정을 읽어드릴게요."); }
         function stopReading() { window.speechSynthesis.cancel(); }
-        function startVoice(target) { const recognition = new (window.webkitSpeechRecognition || window.webkitSpeechRecognition)(); recognition.lang = 'ko-KR'; recognition.onresult = (e) => { addRow(target, "09:00", e.results[0][0].transcript.trim()); }; recognition.start(); }
-        function startTextVoice(targetId) { const recognition = new (window.webkitSpeechRecognition || window.webkitSpeechRecognition)(); recognition.lang = 'ko-KR'; recognition.onresult = (e) => { document.getElementById(targetId).value += " " + e.results[0][0].transcript; saveCurrentDay(); }; recognition.start(); }
+        function startVoice(target) { const rec = new (window.webkitSpeechRecognition || window.SpeechRecognition)(); rec.lang = 'ko-KR'; rec.onresult = (e) => { addRow(target, "09:00", e.results[0][0].transcript.trim()); }; rec.start(); }
+        function startTextVoice(targetId) { const rec = new (window.webkitSpeechRecognition || window.webkitSpeechRecognition)(); rec.lang = 'ko-KR'; rec.onresult = (e) => { document.getElementById(targetId).value += " " + e.results[0][0].transcript; saveCurrentDay(); }; rec.start(); }
     </script>
 </body>
 </html>
