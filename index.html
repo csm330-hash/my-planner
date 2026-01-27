@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>mune planner v94</title>
+    <title>mune planner v96</title>
     <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
     <style>
         :root { --bg-color: #a2c2e1; --card-bg: #ffffff; }
@@ -15,44 +15,51 @@
         .util-btn.agent-btn { background: #ff4757; color: white; border: none; animation: pulse 2s infinite; }
         @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.03); } 100% { transform: scale(1); } }
         
-        /* 날짜창 아이콘 및 '17' 숫자 강제 제거 */
+        /* [v96] 날짜창 '17' 달력 아이콘 제거 CSS */
         #currentDateInput { 
-            border: 1px solid #ccc; background: #f0f0f0; font-weight: 900; padding: 5px 10px; border-radius: 8px; outline: none; 
+            border: 1px solid #ccc; background: #f0f0f0 !important; font-weight: 900; padding: 5px 10px; border-radius: 8px; outline: none; 
             -webkit-appearance: none; appearance: none;
         }
-        #currentDateInput::-webkit-calendar-picker-indicator { display: none; -webkit-appearance: none; }
+        #currentDateInput::-webkit-calendar-picker-indicator {
+            display: none !important; -webkit-appearance: none;
+        }
 
         .main-layout { display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 20px; width: 100%; max-width: 1200px; margin: 0 auto; }
         .card { background: var(--card-bg); border-radius: 30px; padding: 25px; box-shadow: 0 10px 20px rgba(0,0,0,0.05); min-height: 350px; position: relative; }
         .list-item { display: flex; align-items: center; gap: 8px; padding: 10px 0; border-bottom: 1px solid #eee; }
         .list-item.completed { opacity: 0.4; text-decoration: line-through; }
-        .del-btn { cursor: pointer; color: #ff6666; font-weight: bold; margin-left: auto; opacity: 0.5; font-size: 1.1rem; }
+        .del-btn { cursor: pointer; color: #ff6666; font-weight: bold; margin-left: auto; opacity: 0.5; font-size: 1.1rem; padding: 5px; }
         .time-input { border: none; font-weight: bold; width: 55px; background: transparent; font-size: 1rem; text-align: center; outline: none; }
         .text-input { border: none; flex-grow: 1; background: transparent; font-size: 1rem; color: #333; outline: none; }
         .voice-btn { background: #ffcc00; border: none; padding: 5px 12px; border-radius: 20px; font-weight: bold; cursor: pointer; font-size: 0.8rem; }
         #ai-response-area { display: none; margin: 0 auto 20px; width: 100%; max-width: 1200px; padding: 18px; background: #fff; border-radius: 15px; border: 2.5px solid #ff4757; font-size: 0.95rem; line-height: 1.6; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
         .status-badge { display: inline-block; padding: 2px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: bold; margin-bottom: 10px; color: white; }
+        #multiPasteModal { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 25px; border-radius: 20px; border: 2px solid #000; z-index: 1000; width: 90%; max-width: 400px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
+        .date-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 15px 0; max-height: 200px; overflow-y: auto; }
+        .modal-overlay { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:999; }
     </style>
 </head>
 <body>
 
     <div class="header">
-        <div><h1>mune planner</h1><div class="subtitle" style="font-weight:bold;">Gemini 3.0 Pro Suite v94</div></div>
+        <div><h1>mune planner</h1><div class="subtitle" style="font-weight:bold;">Master Full Version v96</div></div>
         <input type="color" id="bgColorInput" oninput="changeBgColor(this.value)">
     </div>
 
     <div id="ai-response-area">
         <div id="ai-status-badge" class="status-badge" style="background:#888;">준비 완료</div>
-        <div id="ai-content-text">디렉터님, Gemini 3.0 Pro가 대기 중입니다! ㅋ</div>
+        <div id="ai-content-text">디렉터님, 말씀해 주세요! ㅋ</div>
     </div>
 
     <div class="util-bar">
-        <button class="util-btn agent-btn" onclick="startAiAgent()">🎙️ AI 에이전트 대화</button>
+        <button class="util-btn agent-btn" onclick="startAiAgent()">🎙️ AI 에이전트 시작</button>
         <button class="util-btn" onclick="copyList('routine')">루틴복사</button>
         <button class="util-btn" onclick="copyList('health')">건강복사</button>
         <button class="util-btn" style="background:#000; color:#fff;" onclick="openMultiPaste()">다중붙여넣기</button>
         <button class="util-btn" style="background:#4a90e2; color:#fff;" onclick="exportFullBackup()">전체백업</button>
         <button class="util-btn" style="background:#2ecc71; color:#fff;" onclick="exportExcel()">엑셀저장</button>
+        <button class="util-btn" style="border-style:dashed;" onclick="document.getElementById('fileInput').click()">가져오기</button>
+        <input type="file" id="fileInput" style="display:none" onchange="importData(this)">
         <select id="voiceSelect" onchange="testSound()" style="border:1px solid #000; padding:5px; border-radius:8px;"></select>
         
         <div class="time-info" style="margin-left:auto; display:flex; align-items:center; gap:5px; font-weight:900;">
@@ -83,10 +90,17 @@
         </div>
     </div>
 
+    <div id="modalOverlay" class="modal-overlay" onclick="closeMultiPaste()"></div>
+    <div id="multiPasteModal">
+        <h3 style="margin-top:0;">날짜 선택 후 붙여넣기</h3>
+        <p style="font-size:0.8rem; color:#666;">복사된 데이터: <span id="copyTypeLabel">-</span></p>
+        <div id="dateGrid" class="date-grid"></div>
+        <button class="util-btn" style="width:100%; background:#000; color:#fff;" onclick="applyMultiPaste()">복사 실행</button>
+    </div>
+
     <audio id="alarmSound" src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg" preload="auto"></audio>
 
     <script>
-        // [유료 키 적용]
         const GEMINI_API_KEY = "AIzaSyAW6fQK0cWW6IQ5zZYGmY_29xn4ZYkdNrQ"; 
         let lastKnownDate = ""; let isAudioUnlocked = false; let voices = [];
         let lastCopiedData = null; let lastCopiedType = null;
@@ -98,10 +112,7 @@
             changeBgColor(savedColor);
             document.getElementById('bgColorInput').value = savedColor;
             checkAndSyncDate();
-            setInterval(() => { 
-                document.getElementById('clock').innerText = new Date().toLocaleTimeString('ko-KR', { hour12: false });
-                updateDDay();
-            }, 1000);
+            setInterval(() => { document.getElementById('clock').innerText = new Date().toLocaleTimeString('ko-KR', { hour12: false }); updateDDay(); }, 1000);
             setTimeout(loadVoices, 500);
         };
 
@@ -110,61 +121,51 @@
             document.getElementById('gcp-dday').innerText = `D-${diff}`;
         }
 
-        // [v94] Gemini 3.0 Pro 에이전트 구동 엔진
+        // --- AI 에이전트 & 보이스 (유료 키 적용) ---
         async function startAiAgent() {
             const area = document.getElementById('ai-response-area');
             const badge = document.getElementById('ai-status-badge');
             const content = document.getElementById('ai-content-text');
             area.style.display = 'block';
 
-            // 오디오 채널 즉시 개방
-            const sound = document.getElementById('alarmSound');
-            try { await sound.play(); sound.pause(); isAudioUnlocked = true; loadVoices(); } catch (e) {}
+            if (!isAudioUnlocked) {
+                const sound = document.getElementById('alarmSound');
+                try { await sound.play(); sound.pause(); isAudioUnlocked = true; loadVoices(); } catch (e) {}
+            }
 
-            speakText("네, 혜원 디렉터님. 3.0 프로 엔진이 듣고 있습니다.");
+            speakText("네, 혜원 디렉터님. 듣고 있습니다.");
             
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
             const recognition = new SpeechRecognition();
             recognition.lang = 'ko-KR';
 
-            recognition.onstart = () => {
-                badge.innerText = "🎤 경청 중"; badge.style.background = "#ff4757";
-            };
-
+            recognition.onstart = () => { badge.innerText = "🎤 듣는 중"; badge.style.background = "#ff4757"; };
             recognition.onresult = async (event) => {
                 const userSpeech = event.results[0][0].transcript;
-                badge.innerText = "🧠 3.0 Pro 분석 중"; badge.style.background = "#4a90e2";
-                content.innerHTML = `나: ${userSpeech}<br><br><em>디렉터님의 데이터를 심층 분석하고 있습니다...</em>`;
-
-                // 최신 Gemini 3.0 Pro API 호출
+                badge.innerText = "🧠 분석 중"; badge.style.background = "#4a90e2";
+                content.innerHTML = `나: ${userSpeech}<br><br><em>잠시만 기다려 주세요...</em>`;
+                const silentPumper = setInterval(() => { window.speechSynthesis.speak(new SpeechSynthesisUtterance("")); }, 1500);
                 const aiResponse = await askGemini(userSpeech);
-
+                clearInterval(silentPumper);
                 badge.innerText = "🗣️ 답변 중"; badge.style.background = "#2ecc71";
                 content.innerHTML = `나: ${userSpeech}<br><br><strong>AI:</strong> ${aiResponse}`;
                 speakText(aiResponse);
             };
-
-            recognition.onerror = () => { content.innerText = "잘 못 들었어요. 다시 한 번 말씀해 주세요! ㅋ"; };
             recognition.start();
         }
 
         async function askGemini(prompt) {
             const date = document.getElementById('currentDateInput').value;
             const currentData = localStorage.getItem(`mune_data_${date}`) || "데이터 없음";
-            
-            // [v94] Gemini 3.0 Pro 엔드포인트 설정
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.0-pro:generateContent?key=${GEMINI_API_KEY}`;
-            
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${GEMINI_API_KEY}`;
             try {
                 const response = await fetch(url, {
                     method: "POST", headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ contents: [{ parts: [{ text: `사용자: ${prompt}\n\n상황: ${currentData}\n당신은 혜원의 수석 AI 비서 mune입니다. 3.0 Pro의 지능을 활용해 2~3문장 내외로 깊이 있고 다정하게 답하세요.` }] }] })
+                    body: JSON.stringify({ contents: [{ parts: [{ text: `사용자: ${prompt}\n상황: ${currentData}\n당신은 혜원의 비서 mune입니다. 2문장 내외로 다정하게 답하세요.` }] }] })
                 });
                 const data = await response.json();
                 return data.candidates[0].content.parts[0].text;
-            } catch (err) {
-                return "연결이 잠시 지연되었어요. 유료 API 상태를 확인해 보세요! ㅋ";
-            }
+            } catch (err) { return "연결이 불안정해요. 인터넷 확인 후 다시 불러주세요!"; }
         }
 
         function speakText(text) {
@@ -176,7 +177,7 @@
             msg.rate = 1.0; window.speechSynthesis.speak(msg);
         }
 
-        // --- 안정화된 핵심 로직 ---
+        // --- 데이터 관리 (복구 완료) ---
         function startVoice(target) {
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
             const rec = new SpeechRecognition(); rec.lang = 'ko-KR';
@@ -223,18 +224,71 @@
             localStorage.setItem(`mune_data_${date}`, JSON.stringify(data));
         }
 
+        // --- 복사 & 다중 붙여넣기 로직 복구 ---
+        function copyList(target) {
+            lastCopiedType = target;
+            lastCopiedData = Array.from(document.querySelectorAll(`#${target}-list .list-item`)).map(i => ({ time: i.querySelector('.time-input').value, text: i.querySelector('.text-input').value, completed: i.classList.contains('completed') }));
+            alert("목록이 복사되었습니다! ㅋ");
+        }
+
+        function openMultiPaste() {
+            if (!lastCopiedData) return alert("복사된 목록이 없습니다.");
+            document.getElementById('copyTypeLabel').innerText = (lastCopiedType === 'routine' ? '일정' : '건강');
+            const grid = document.getElementById('dateGrid'); grid.innerHTML = '';
+            for (let i = 0; i < 14; i++) {
+                const d = new Date(); d.setDate(new Date().getDate() + i);
+                const s = d.toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' });
+                grid.innerHTML += `<label style="border:1px solid #ddd; padding:8px; border-radius:8px;"><input type="checkbox" value="${s}">${s.slice(5)}</label>`;
+            }
+            document.getElementById('modalOverlay').style.display = 'block'; document.getElementById('multiPasteModal').style.display = 'block';
+        }
+
+        function applyMultiPaste() {
+            const dates = Array.from(document.querySelectorAll('#dateGrid input:checked')).map(cb => cb.value);
+            dates.forEach(date => {
+                const cur = JSON.parse(localStorage.getItem(`mune_data_${date}`)) || { routine: [], health: [], idea: "", diet: "" };
+                if (lastCopiedType === 'routine') cur.routine = JSON.parse(JSON.stringify(lastCopiedData));
+                else cur.health = JSON.parse(JSON.stringify(lastCopiedData));
+                localStorage.setItem(`mune_data_${date}`, JSON.stringify(cur));
+            });
+            alert("다중 붙여넣기 완료!"); closeMultiPaste(); loadDayData(getSeoulDateStr());
+        }
+
+        function closeMultiPaste() { document.getElementById('modalOverlay').style.display = 'none'; document.getElementById('multiPasteModal').style.display = 'none'; }
+
+        // --- 기타 유틸리티 ---
         function getSeoulDateStr() { return new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' }); }
         function checkAndSyncDate() { const today = getSeoulDateStr(); if (lastKnownDate !== today) { lastKnownDate = today; document.getElementById('currentDateInput').value = today; loadDayData(today); } }
         function manualDateChange(val) { loadDayData(val); }
         function loadVoices() { voices = window.speechSynthesis.getVoices(); const vs = document.getElementById('voiceSelect'); vs.innerHTML = ''; voices.filter(v => v.lang.includes('ko')).forEach((v, i) => { const o = document.createElement('option'); o.value = i; o.textContent = v.name; if (v.name.includes('Google') || v.name.includes('Natural')) o.selected = true; vs.appendChild(o); }); }
         function sortList(target) { const list = document.getElementById(`${target}-list`); const items = Array.from(list.children); items.sort((a, b) => a.querySelector('.time-input').value.localeCompare(b.querySelector('.time-input').value)); items.forEach(item => list.appendChild(item)); }
-        function copyList(target) { lastCopiedType = target; lastCopiedData = Array.from(document.querySelectorAll(`#${target}-list .list-item`)).map(i => ({ time: i.querySelector('.time-input').value, text: i.querySelector('.text-input').value, completed: i.classList.contains('completed') })); alert("목록 복사 완료!"); }
-        function openMultiPaste() { alert("준비 중입니다."); }
-        function exportFullBackup() { const data = {}; for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k.startsWith("mune_data_")) data[k] = JSON.parse(localStorage.getItem(k)); } const blob = new Blob([JSON.stringify(data)], {type: 'application/json'}); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `mune_backup.json`; a.click(); }
-        function exportExcel() { alert("엑셀 데이터 저장 중..."); }
-        function importData(input) { const file = input.files[0]; if (!file) return; const reader = new FileReader(); reader.onload = (e) => { const data = JSON.parse(e.target.result); Object.keys(data).forEach(k => localStorage.setItem(k, JSON.stringify(data[k]))); alert("데이터 복구 완료!"); loadDayData(getSeoulDateStr()); }; reader.readAsText(file); }
-        function captureIdea() { const text = document.getElementById('idea-text').value; if(!text) return alert("내용 없음"); const area = document.createElement('div'); area.style = "padding:40px; background:linear-gradient(135deg, #a2c2e1, #fff); width:400px; color:#333;"; area.innerHTML = `<h3>MUNE IDEA</h3><p>${text}</p>`; document.body.appendChild(area); html2canvas(area).then(canvas => { const link = document.createElement('a'); link.download = `idea.png`; link.href = canvas.toDataURL(); link.click(); document.body.removeChild(area); }); }
-        function testSound() { speakText("혜원님, 제미나이 3.0 프로 보이스 시스템 테스트입니다. ㅋ"); }
+        function exportFullBackup() { const data = {}; for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k.startsWith("mune_data_")) data[k] = JSON.parse(localStorage.getItem(k)); } const blob = new Blob([JSON.stringify(data)], {type: 'application/json'}); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = "mune_backup.json"; a.click(); }
+        function exportExcel() { 
+            let csv = "\ufeff날짜,구분,시간,내용,완료\n";
+            for(let i=0; i<localStorage.length; i++) { 
+                const k = localStorage.key(i); if(!k.startsWith("mune_data_")) continue;
+                const date = k.replace("mune_data_",""); const d = JSON.parse(localStorage.getItem(k));
+                if(d.routine) d.routine.forEach(r => csv += `${date},일정,${r.time},"${r.text}",${r.completed?'O':'X'}\n`);
+                if(d.health) d.health.forEach(h => csv += `${date},건강,${h.time},"${h.text}",${h.completed?'O':'X'}\n`);
+            }
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `mune_records.csv`; a.click();
+        }
+        function importData(input) { 
+            const file = input.files[0]; if (!file) return;
+            const reader = new FileReader(); reader.onload = (e) => { 
+                try {
+                    const data = JSON.parse(e.target.result); Object.keys(data).forEach(k => localStorage.setItem(k, JSON.stringify(data[k]))); 
+                    alert("데이터 복구 완료!"); loadDayData(getSeoulDateStr()); 
+                } catch(e) { alert("파일 형식이 맞지 않습니다."); }
+            }; reader.readAsText(file); 
+        }
+        function captureIdea() { 
+            const text = document.getElementById('idea-text').value; if(!text) return alert("내용 없음");
+            const area = document.createElement('div'); area.style = "padding:40px; background:linear-gradient(135deg, #a2c2e1, #fff); width:400px; color:#333;"; area.innerHTML = `<h3>MUNE IDEA</h3><p>${text}</p>`; document.body.appendChild(area);
+            html2canvas(area).then(canvas => { const link = document.createElement('a'); link.download = `idea.png`; link.href = canvas.toDataURL(); link.click(); document.body.removeChild(area); });
+        }
+        function testSound() { speakText("혜원님, 완벽 복구된 보이스 시스템입니다. ㅋ"); }
     </script>
 </body>
 </html>
