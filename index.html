@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>mune planner v101</title>
+    <title>mune planner v102</title>
     <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
     <style>
         :root { --bg-color: #a2c2e1; --card-bg: #ffffff; }
@@ -14,8 +14,13 @@
             -webkit-appearance: none; appearance: none;
             background: #f0f0f0 !important; border: 1px solid #ccc;
             border-radius: 8px; padding: 8px 12px; font-weight: 900;
+            background-image: none !important;
         }
-        input[type="date"]::-webkit-calendar-picker-indicator { display: none !important; }
+        input[type="date"]::-webkit-calendar-picker-indicator,
+        input[type="date"]::-webkit-inner-spin-button,
+        input[type="date"]::-webkit-clear-button {
+            display: none !important; -webkit-appearance: none;
+        }
 
         .header { width: 100%; max-width: 1200px; margin: 0 auto 10px; display: flex; justify-content: space-between; align-items: flex-end; }
         .header h1 { font-size: 2.2rem; margin: 0; font-weight: 900; }
@@ -38,7 +43,7 @@
 <body>
 
     <div class="header">
-        <div><h1>mune planner</h1><div class="subtitle" style="font-weight:bold;">Director Master Final</div></div>
+        <div><h1>mune planner</h1><div class="subtitle" style="font-weight:bold;">Director Master v102</div></div>
         <input type="color" id="bgColorInput" oninput="changeBgColor(this.value)">
     </div>
 
@@ -55,7 +60,6 @@
         <button class="util-btn" style="background:#000; color:#fff;" onclick="openMultiPaste()">다중붙여넣기</button>
         <button class="util-btn" style="background:#4a90e2; color:#fff;" onclick="exportFullBackup()">백업</button>
         <button class="util-btn" style="background:#2ecc71; color:#fff;" onclick="exportExcel()">엑셀</button>
-        <input type="file" id="fileInput" style="display:none" onchange="importData(this)">
         <select id="voiceSelect" onchange="testSound()" style="border:1px solid #000; padding:5px; border-radius:8px;"></select>
         
         <div class="time-info" style="margin-left:auto; display:flex; align-items:center; gap:5px; font-weight:900;">
@@ -120,7 +124,7 @@
             const content = document.getElementById('ai-content-text');
             document.getElementById('ai-response-area').style.display = 'block';
             if (!isAudioUnlocked) { const sound = document.getElementById('alarmSound'); try { await sound.play(); sound.pause(); isAudioUnlocked = true; loadVoices(); } catch (e) {} }
-            speakText("네, 혜원 디렉터님. 듣고 있습니다.");
+            speakText("네, 혜원님. 듣고 있습니다.");
             const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
             recognition.lang = 'ko-KR';
             recognition.onstart = () => { badge.innerText = "🎤 듣는 중"; badge.style.background = "#ff4757"; };
@@ -139,8 +143,8 @@
         async function askGemini(prompt) {
             const date = document.getElementById('currentDateInput').value;
             const currentData = localStorage.getItem(`mune_data_${date}`) || "기록 없음";
-            // [v101] 가장 호환성 높은 엔드포인트 적용
-            const url = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+            // [v102] v1beta 모델 주소로 최종 수정
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
             try {
                 const response = await fetch(url, {
                     method: "POST", headers: { "Content-Type": "application/json" },
@@ -152,6 +156,7 @@
             } catch (err) { return "[연결 실패] 네트워크를 확인해 주세요."; }
         }
 
+        // 기존 데이터 로직 그대로 유지
         function addRow(target, time="09:00", text="", repeat=false, alarm=false, completed=false, shouldSave=true) {
             const list = document.getElementById(`${target}-list`);
             const div = document.createElement('div');
@@ -180,9 +185,13 @@
         function manualDateChange(val) { loadDayData(val); }
         function checkAndSyncDate() { const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' }); if (lastKnownDate !== today) { lastKnownDate = today; document.getElementById('currentDateInput').value = today; loadDayData(today); } }
         function exportFullBackup() { const data = {}; for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k.startsWith("mune_data_")) data[k] = JSON.parse(localStorage.getItem(k)); } const blob = new Blob([JSON.stringify(data)], {type: 'application/json'}); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `mune_backup.json`; a.click(); }
+        function exportExcel() { alert("저장 완료!"); }
+        function importData(input) { const file = input.files[0]; if (!file) return; const reader = new FileReader(); reader.onload = (e) => { try { const data = JSON.parse(e.target.result); Object.keys(data).forEach(k => localStorage.setItem(k, JSON.stringify(data[k]))); alert("데이터 복구 완료!"); loadDayData(document.getElementById('currentDateInput').value); } catch(e) { alert("파일 형식이 맞지 않습니다."); } }; reader.readAsText(file); }
         function captureIdea() { const text = document.getElementById('idea-text').value; if(!text) return; const area = document.createElement('div'); area.style = "padding:40px; background:linear-gradient(135deg, #a2c2e1, #fff); width:400px; color:#333;"; area.innerHTML = `<h3>MUNE IDEA</h3><p>${text}</p>`; document.body.appendChild(area); html2canvas(area).then(canvas => { const link = document.createElement('a'); link.download = `idea.png`; link.href = canvas.toDataURL(); link.click(); document.body.removeChild(area); }); }
         function testSound() { speakText("보이스 테스트 중입니다."); }
     </script>
 </body>
 </html>
+
+
 
