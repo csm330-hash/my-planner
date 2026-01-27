@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>mune planner v80</title>
+    <title>mune planner v81</title>
     <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
     <style>
         :root { --bg-color: #a2c2e1; --card-bg: #ffffff; }
@@ -114,12 +114,16 @@
             "세상에 하나뿐인 혜원님만의 세계관, 그 발걸음을 응원합니다. ❤️"
         ];
 
+        function setRandomCheer() { document.getElementById('cheerMessage').innerText = cheerMessages[Math.floor(Math.random() * cheerMessages.length)]; }
+        
+        // [v81 수정] UTC 시간에 9시간을 더해 한국 시간 기준 날짜 문자열 반환 (자정 문제 해결)
         function getSeoulDateStr() {
-    const now = new Date();
-    // 현재 UTC 시간(ms)에 9시간(ms)을 더해 한국 시간으로 변환
-    const kstDate = new Date(now.getTime() + (9 * 60 * 60 * 1000));
-    return kstDate.toISOString().split('T')[0];
-}
+            const now = new Date();
+            const utc = now.getTime() + (now.getTimezoneOffset() * 60000); // 현재 시간을 UTC로 변환
+            const kstOffset = 9 * 60 * 60 * 1000; // 한국 시간은 UTC+9
+            const kstDate = new Date(utc + kstOffset);
+            return kstDate.toISOString().split('T')[0];
+        }
 
         // [v80 핵심] 강제 날짜 동기화
         function checkAndSyncDate() {
@@ -137,7 +141,6 @@
             }
 
             // 2. 날짜 변경 감지 및 강제 전환
-            // 조건: 실제 오늘과 마지막 인지한 날짜가 다름 + 사용자가 과거를 보고 있는 게 아님
             if (lastKnownDate !== realToday && !isUserViewingArchive) {
                 console.log("새로운 날짜 감지! 플래너를 오늘로 전환합니다.");
                 lastKnownDate = realToday;
@@ -147,7 +150,7 @@
             }
         }
 
-        // 전역 클릭 이벤트 (어디든 누르면 날짜 체크 + 오디오 잠금해제 시도)
+        // 전역 클릭 이벤트
         function handleGlobalClick(e) {
             checkAndSyncDate();
             unlockAudio();
@@ -161,10 +164,10 @@
 
         function updateDisplay() {
             const now = new Date();
-            const seoulNow = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Seoul' }));
-            const currentStr = `${String(seoulNow.getHours()).padStart(2, '0')}:${String(seoulNow.getMinutes()).padStart(2, '0')}`;
+            // 화면 표시용 시계 (브라우저 로컬 시간 사용)
+            const currentStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
             
-            document.getElementById('clock').innerText = seoulNow.toLocaleTimeString('ko-KR', { hour12: false });
+            document.getElementById('clock').innerText = now.toLocaleTimeString('ko-KR', { hour12: false });
             
             if (now.getSeconds() === 0) {
                 document.querySelectorAll('.list-item').forEach((item, idx) => {
@@ -177,8 +180,11 @@
                 });
             } else if (now.getSeconds() === 59) { ringedAlarms.clear(); }
 
-            const gcpDate = new Date('2026-03-10T00:00:00');
-            const diff = Math.ceil((gcpDate - seoulNow.setHours(0,0,0,0)) / (1000*60*60*24));
+            // D-day 계산 (한국시간 기준)
+            const todayStr = getSeoulDateStr();
+            const todayDate = new Date(todayStr);
+            const gcpDate = new Date('2026-03-10');
+            const diff = Math.ceil((gcpDate - todayDate) / (1000*60*60*24));
             document.getElementById('gcp-dday').innerText = `D-${diff}`;
         }
 
