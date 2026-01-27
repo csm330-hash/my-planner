@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>mune planner Reboot v1.0</title>
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+    <style>
+        :root { --bg-color: #a2c2e1; --card-bg: #ffffff; --text-main: #333; }
+        body { background-color: var(--bg-color); font-family: 'Pretendard', sans-serif; margin: 0; padding: 20px; color: var(--text-main); transition: background 0.3s; }
+        
+        /* [Reboot] 아이콘 제거 CSS - 가장 깔끔한 방식 */
+        input[type="date"] { -webkit-appearance: none; appearance: none; background: #f0f0f0; border: 1px solid #ccc; border-radius: 8px; padding: 8px 12px; font-weight: 900; outline: none; }
+        input[type="date"]::-webkit-calendar-picker-indicator { display: none !important; }
+
+        .header { width: 100%; max-width: 1000px; margin: 0 auto 20px; display: flex; justify-content: space-between; align-items: center; }
+        .header h1 { font-size: 2rem; margin: 0; font-weight: 900; letter-spacing: -1px; }
+
+        .util-bar { width: 100%; max-width: 1000px; background: white; border-radius: 12px; padding: 12px; margin: 0 auto 20px; display: flex; gap: 8px; border: 1.5px solid #000; box-shadow: 3px 3px 0px #000; align-items: center; flex-wrap: wrap; }
+        .btn { border: 1.5px solid #000; padding: 7px 14px; border-radius: 8px; background: #fff; font-weight: bold; cursor: pointer; font-size: 0.85rem; transition: 0.1s; }
+        .btn:active { transform: translate(1px, 1px); box-shadow: none; }
+        
+        .main-layout { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; width: 100%; max-width: 1000px; margin: 0 auto; }
+        .card { background: var(--card-bg); border-radius: 25px; padding: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); position: relative; min-height: 350px; }
+        .card h2 { font-size: 1.2rem; margin-top: 0; margin-bottom: 15px; border-left: 5px solid #000; padding-left: 10px; }
+
+        .list-item { display: flex; align-items: center; gap: 8px; padding: 10px 0; border-bottom: 1px solid #f0f0f0; }
+        .time-input { border: none; font-weight: bold; width: 50px; background: #f9f9f9; padding: 5px; border-radius: 5px; text-align: center; }
+        .text-input { border: none; flex-grow: 1; padding: 5px; font-size: 1rem; outline: none; }
+        .del-btn { color: #ff4757; font-weight: bold; cursor: pointer; opacity: 0.3; padding: 0 5px; }
+        .del-btn:hover { opacity: 1; }
+
+        textarea { width: 100%; height: 120px; border: none; background: #f9f9f9; padding: 15px; border-radius: 15px; font-size: 1rem; outline: none; resize: none; box-sizing: border-box; }
+        #diet-text { background: #fff5f5; height: 100px; margin-top: 10px; }
+
+        .clock-area { margin-left: auto; font-weight: 900; font-size: 1.1rem; display: flex; align-items: center; gap: 10px; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>mune reboot v1.0</h1>
+        <input type="color" id="bgColorInput" value="#a2c2e1" oninput="changeBg(this.value)">
+    </div>
+
+    <div class="util-bar">
+        <button class="btn" onclick="exportBackup()">💾 데이터 백업</button>
+        <button class="btn" onclick="document.getElementById('fileInput').click()">📂 가져오기</button>
+        <input type="file" id="fileInput" style="display:none" onchange="importData(this)">
+        <div class="clock-area">
+            <input type="date" id="dateSelector" onchange="switchDate(this.value)">
+            <span id="digitalClock">00:00:00</span>
+        </div>
+    </div>
+
+    <div class="main-layout">
+        <div class="card">
+            <h2>오늘의 일정</h2>
+            <div id="routine-list"></div>
+            <button class="btn" style="width:100%; margin-top:15px; background:#eee;" onclick="addItem('routine')">+ 일정 추가</button>
+        </div>
+        <div class="card">
+            <h2>건강 기록</h2>
+            <div id="health-list"></div>
+            <button class="btn" style="width:100%; margin-top:15px; background:#eee;" onclick="addItem('health')">+ 기록 추가</button>
+        </div>
+        <div class="card">
+            <h2>창작 메모</h2>
+            <textarea id="memo-text" oninput="saveData()" placeholder="자유롭게 기록하세요..."></textarea>
+            <h2 style="margin-top:20px;">식단 기록</h2>
+            <textarea id="diet-text" oninput="saveData()" placeholder="무엇을 드셨나요?"></textarea>
+        </div>
+    </div>
+
+    <script>
+        let currentLoadedDate = "";
+
+        // [뼈대] 페이지 로드 시 초기화
+        window.onload = () => {
+            const savedBg = localStorage.getItem('mune_reboot_bg') || '#a2c2e1';
+            changeBg(savedBg);
+            initClock();
+            setToday();
+        };
+
+        function changeBg(color) { document.body.style.backgroundColor = color; localStorage.setItem('mune_reboot_bg', color); }
+
+        function initClock() {
+            setInterval(() => {
+                const now = new Date();
+                document.getElementById('digitalClock').innerText = now.toLocaleTimeString('ko-KR', { hour12: false });
+                // 자정 체크 (날짜 자동 갱신)
+                if (now.getHours() === 0 && now.getMinutes() === 0 && now.getSeconds() === 0) setToday();
+            }, 1000);
+        }
+
+        function setToday() {
+            const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' });
+            document.getElementById('dateSelector').value = today;
+            switchDate(today);
+        }
+
+        function switchDate(dateStr) {
+            currentLoadedDate = dateStr;
+            loadData(dateStr);
+        }
+
+        function addItem(target, time="09:00", text="") {
+            const container = document.getElementById(`${target}-list`);
+            const div = document.createElement('div');
+            div.className = 'list-item';
+            div.innerHTML = `
+                <input type="text" class="time-input" value="${time}" onblur="saveData()">
+                <input type="text" class="text-input" value="${text}" placeholder="내용 입력..." oninput="saveData()">
+                <span class="del-btn" onclick="this.parentElement.remove(); saveData();">✕</span>
+            `;
+            container.appendChild(div);
+            saveData();
+        }
+
+        function saveData() {
+            if (!currentLoadedDate) return;
+            const data = {
+                routine: Array.from(document.querySelectorAll('#routine-list .list-item')).map(el => ({
+                    time: el.querySelector('.time-input').value,
+                    text: el.querySelector('.text-input').value
+                })),
+                health: Array.from(document.querySelectorAll('#health-list .list-item')).map(el => ({
+                    time: el.querySelector('.time-input').value,
+                    text: el.querySelector('.text-input').value
+                })),
+                memo: document.getElementById('memo-text').value,
+                diet: document.getElementById('diet-text').value
+            };
+            localStorage.setItem(`mune_reboot_${currentLoadedDate}`, JSON.stringify(data));
+        }
+
+        function loadData(dateStr) {
+            const raw = localStorage.getItem(`mune_reboot_${dateStr}`);
+            document.getElementById('routine-list').innerHTML = '';
+            document.getElementById('health-list').innerHTML = '';
+            document.getElementById('memo-text').value = '';
+            document.getElementById('diet-text').value = '';
+
+            if (raw) {
+                const data = JSON.parse(raw);
+                if (data.routine) data.routine.forEach(item => addItem('routine', item.time, item.text));
+                if (data.health) data.health.forEach(item => addItem('health', item.time, item.text));
+                document.getElementById('memo-text').value = data.memo || "";
+                document.getElementById('diet-text').value = data.diet || "";
+            }
+        }
+
+        function exportBackup() {
+            const data = {};
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key.startsWith('mune_reboot_')) data[key] = localStorage.getItem(key);
+            }
+            const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `mune_reboot_backup.json`;
+            a.click();
+        }
+
+        function importData(input) {
+            const file = input.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const imported = JSON.parse(e.target.result);
+                Object.keys(imported).forEach(k => localStorage.setItem(k, imported[k]));
+                alert("데이터 복구 완료!");
+                setToday();
+            };
+            reader.readAsText(file);
+        }
+    </script>
+</body>
+</html>
