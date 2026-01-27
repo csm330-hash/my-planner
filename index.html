@@ -88,15 +88,32 @@
 
     <audio id="alarmSound" src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg" preload="auto" loop></audio>
 
-    <script>
-        let lastKnownDate = ""; let voices = []; let lastCopiedData = null; let lastCopiedType = null;
+   <script>
+        let lastKnownDate = ""; 
+        let voices = []; 
+        let lastCopiedData = null; 
+        let lastCopiedType = null;
+        let lastCheckedTime = ""; // 알람 중복 실행 방지용 변수
+        let timerWorker = null; // 백그라운드 타이머용 워커
 
         function changeBgColor(color) { document.body.style.backgroundColor = color; localStorage.setItem('mune_bg_color', color); }
         
         window.onload = () => {
             const savedColor = localStorage.getItem('mune_bg_color') || '#a2c2e1';
             changeBgColor(savedColor); document.getElementById('bgColorInput').value = savedColor;
-            setInterval(updateClock, 1000); checkAndSyncDate();
+            
+            // [수정 1] Web Worker를 사용하여 백그라운드에서도 1초마다 작동하도록 변경
+            const workerScript = `
+                setInterval(() => { postMessage('tick'); }, 1000);
+            `;
+            const blob = new Blob([workerScript], {type: 'application/javascript'});
+            timerWorker = new Worker(URL.createObjectURL(blob));
+            
+            timerWorker.onmessage = function(e) {
+                updateClock();
+            };
+
+            checkAndSyncDate();
             if (speechSynthesis.onvoiceschanged !== undefined) speechSynthesis.onvoiceschanged = loadVoices;
             loadVoices();
         };
@@ -106,7 +123,15 @@
         function updateClock() {
             const now = getSeoulTime();
             document.getElementById('clock').innerText = now.toLocaleTimeString('ko-KR', { hour12: false });
-            if (now.getSeconds() === 0) { checkAlarms(now); checkAndSyncDate(); }
+            
+            // [수정 2] 초(seconds)가 0일 때만 체크하는 것이 아니라, 분(minute)이 변경되었을 때 체크
+            const currentMinute = now.getHours().toString().padStart(2, '0') + ":" + now.getMinutes().toString().padStart(2, '0');
+            
+            if (lastCheckedTime !== currentMinute) {
+                lastCheckedTime = currentMinute;
+                checkAlarms(now); 
+                checkAndSyncDate();
+            }
         }
 
         function wakeUpSystem() {
@@ -120,18 +145,31 @@
         }
 
         function checkAlarms(now) {
+            // updateClock에서 이미 분 단위 체크를 하므로 여기서는 시간만 비교
             const currentTime = now.getHours().toString().padStart(2, '0') + ":" + now.getMinutes().toString().padStart(2, '0');
+            
             document.querySelectorAll('.list-item:not(.completed)').forEach(item => {
                 const alarmBtn = item.querySelector('.alarm-toggle');
                 const taskText = item.querySelector('.text-input').value;
-                if (alarmBtn && alarmBtn.classList.contains('active') && item.querySelector('.time-input').value.trim() === currentTime) {
+                const timeValue = item.querySelector('.time-input').value.trim();
+
+                if (alarmBtn && alarmBtn.classList.contains('active') && timeValue === currentTime) {
                     const sound = document.getElementById('alarmSound');
-                    sound.volume = 1.0; sound.loop = false; sound.currentTime = 0; sound.play();
-                    setTimeout(() => { 
-                        speakText(`혜원님, ${taskText} 하실 시간입니다.`);
-                        // 다시 무음 루프로 복구
-                        setTimeout(() => { sound.volume = 0; sound.loop = true; sound.play(); }, 10000);
-                    }, 1300);
+                    sound.volume = 1.0; sound.loop = false; sound.currentTime = 0; 
+                    
+                    // 브라우저 차단 방지를 위한 안전한 재생 시도
+                    const playPromise = sound.play();
+                    if (playPromise !== undefined) {
+                        playPromise.then(_ => {
+                            setTimeout(() => { 
+                                speakText(`혜원님, ${taskText} 하실 시간입니다.`);
+                                // 다시 무음 루프로 복구 (다음 알람을 위해)
+                                setTimeout(() => { sound.volume = 0; sound.loop = true; sound.play(); }, 10000);
+                            }, 1300);
+                        }).catch(error => {
+                            console.log("알람 재생 실패: 사용자 인터랙션 필요");
+                        });
+                    }
                 }
             });
         }
@@ -199,10 +237,5 @@
         function manualDateChange(val) { loadDayData(val); }
         function checkAndSyncDate() { const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' }); if (lastKnownDate !== today) { lastKnownDate = today; document.getElementById('currentDateInput').value = today; loadDayData(today); } }
     </script>
-</body>
-</html>
-
-
-
 
 
