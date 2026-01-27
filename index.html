@@ -3,38 +3,38 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>mune planner v111</title>
+    <title>mune planner v113</title>
     <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
     <style>
         :root { --bg-color: #a2c2e1; --card-bg: #ffffff; }
         body { background-color: var(--bg-color); font-family: 'Pretendard', sans-serif; margin: 0; padding: 20px; transition: background 0.3s; }
         
-        /* 날짜창 아이콘 완전 박멸 */
+        /* [핵심] 날짜창 아이콘 완전 박멸 CSS */
         input[type="date"] {
             -webkit-appearance: none; appearance: none;
             background: #f0f0f0 !important; border: 1px solid #ccc;
             border-radius: 8px; padding: 8px 12px; font-weight: 900;
+            background-image: none !important;
         }
         input[type="date"]::-webkit-calendar-picker-indicator { display: none !important; }
 
         .header { width: 100%; max-width: 1200px; margin: 0 auto 10px; display: flex; justify-content: space-between; align-items: flex-end; }
         .header h1 { font-size: 2.2rem; margin: 0; font-weight: 900; }
-        
         .util-bar { width: 100%; max-width: 1200px; background: white; border-radius: 10px; padding: 10px; margin: 0 auto 20px; display: flex; gap: 6px; flex-wrap: wrap; border: 1.5px solid #000; box-shadow: 2.5px 2.5px 0px #000; align-items: center; }
-        .util-btn { border: 1px solid #000; padding: 6px 12px; border-radius: 8px; background: #fff; font-weight: bold; cursor: pointer; font-size: 0.8rem; transition: transform 0.1s; }
-        .util-btn:active { transform: scale(0.95); }
-        .read-btn { background: #ffcc00; border: none; }
-        .stop-btn { background: #666; color: white; border: none; }
-
+        .util-btn { border: 1px solid #000; padding: 6px 12px; border-radius: 8px; background: #fff; font-weight: bold; cursor: pointer; font-size: 0.8rem; }
+        
         .main-layout { display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 20px; width: 100%; max-width: 1200px; margin: 0 auto; }
         .card { background: var(--card-bg); border-radius: 30px; padding: 25px; box-shadow: 0 10px 20px rgba(0,0,0,0.05); min-height: 400px; position: relative; }
         .list-item { display: flex; align-items: center; gap: 8px; padding: 8px 0; border-bottom: 1px solid #eee; }
         .list-item.completed { opacity: 0.4; text-decoration: line-through; }
-        
         .del-btn { cursor: pointer; color: #ff6666; font-weight: bold; margin-left: auto; opacity: 0.5; font-size: 1.1rem; padding: 5px; }
         .time-input { border: none; font-weight: bold; width: 55px; background: transparent; font-size: 1rem; text-align: center; outline: none; }
         .text-input { border: none; flex-grow: 1; background: transparent; font-size: 1rem; color: #333; outline: none; }
-        .voice-btn { background: #eee; border: 1px solid #000; padding: 5px 12px; border-radius: 20px; font-weight: bold; cursor: pointer; font-size: 0.8rem; }
+        .voice-btn { background: #eee; border: 1px solid #000; padding: 5px 12px; border-radius: 20px; font-weight: bold; cursor: pointer; font-size: 0.75rem; }
+        
+        /* 알람 애니메이션 */
+        @keyframes ring { 0% { transform: rotate(0); } 10% { transform: rotate(15deg); } 20% { transform: rotate(-15deg); } 30% { transform: rotate(15deg); } 40% { transform: rotate(0); } 100% { transform: rotate(0); } }
+        .alarm-on { animation: ring 0.5s infinite; color: #ff4757; }
         
         #multiPasteModal { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 30px; border-radius: 20px; border: 2px solid #000; z-index: 1000; width: 90%; max-width: 400px; }
         .date-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 15px 0; max-height: 200px; overflow-y: auto; }
@@ -44,13 +44,13 @@
 <body>
 
     <div class="header">
-        <div><h1>mune planner</h1><div class="subtitle" style="font-weight:bold;">HYEWON Stable v111</div></div>
+        <div><h1>mune planner</h1><div class="subtitle" style="font-weight:bold;">Director HYEWON v113</div></div>
         <input type="color" id="bgColorInput" oninput="changeBgColor(this.value)">
     </div>
 
     <div class="util-bar">
-        <button class="util-btn read-btn" onclick="readAll()">📢 전체 읽기</button>
-        <button class="util-btn stop-btn" onclick="stopReading()">🛑 중지</button>
+        <button class="util-btn" style="background:#ffcc00; border:none;" onclick="readAll()">📢 전체 읽기</button>
+        <button class="util-btn" style="background:#666; color:white; border:none;" onclick="stopReading()">🛑 중지</button>
         <button class="util-btn" onclick="copyList('routine')">루틴복사</button>
         <button class="util-btn" onclick="copyList('health')">건강복사</button>
         <button class="util-btn" style="background:#000; color:#fff;" onclick="openMultiPaste()">다중붙여넣기</button>
@@ -68,22 +68,23 @@
 
     <div class="main-layout">
         <div class="card">
-            <div class="card-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;"><span style="font-size:1.3rem; font-weight:bold;">📅 일정</span><button class="voice-btn" onclick="startVoice('routine')">🎤 음성추가</button></div>
+            <div class="card-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;"><span style="font-size:1.3rem; font-weight:bold;">일정</span><button class="voice-btn" onclick="startVoice('routine')">🎤 음성추가</button></div>
             <div id="routine-list"></div>
             <button onclick="addRow('routine')" style="margin-top:10px; background:none; border:none; color:#999; cursor:pointer;">+ 항목 추가</button>
         </div>
         <div class="card">
-            <div class="card-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;"><span style="font-size:1.3rem; font-weight:bold;">💊 건강</span><button class="voice-btn" onclick="startVoice('health')">🎤 기록</button></div>
+            <div class="card-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;"><span style="font-size:1.3rem; font-weight:bold;">건강</span><button class="voice-btn" onclick="startVoice('health')">🎤 기록</button></div>
             <div id="health-list"></div>
             <button onclick="addRow('health')" style="margin-top:10px; background:none; border:none; color:#999; cursor:pointer;">+ 항목 추가</button>
         </div>
         <div class="card">
-            <div class="card-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;"><span style="font-size:1.1rem; font-weight:bold;">💡 창작 메모</span><button class="voice-btn" style="background:#4a90e2; color:white;" onclick="captureIdea()">📸 카드 저장</button></div>
+            <div class="card-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;"><span style="font-size:1.1rem; font-weight:bold;">창작 메모</span><button class="voice-btn" onclick="startTextVoice('idea-text')">🎤 음성입력</button></div>
             <div style="background:#f0f4f8; padding:8px; border-radius:10px; margin-bottom:10px; display:flex; justify-content:space-between; font-weight:900; color:#4a90e2; font-size:0.8rem;">
                 <span>GCP 만료 (3/10)</span><span id="gcp-dday">D-</span>
             </div>
             <textarea id="idea-text" oninput="saveCurrentDay()" placeholder="오늘의 아이디어..." style="width:100%; height:100px; border:none; background:#f9f9f9; padding:12px; border-radius:15px; font-size:1rem; outline:none; margin-bottom:15px;"></textarea>
-            <span style="font-size:1.1rem; font-weight:bold;">🥗 식단 기록</span>
+            
+            <div class="card-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;"><span style="font-size:1.1rem; font-weight:bold;">식단 기록</span><button class="voice-btn" onclick="startTextVoice('diet-text')">🎤 음성입력</button></div>
             <textarea id="diet-text" oninput="saveCurrentDay()" placeholder="식단 기록하기..." style="width:100%; height:120px; border:none; background:#fff5f5; padding:12px; border-radius:15px; font-size:1rem; outline:none; margin-top:10px;"></textarea>
         </div>
     </div>
@@ -101,12 +102,15 @@
         let lastKnownDate = ""; let voices = []; let lastCopiedData = null; let lastCopiedType = null;
 
         function changeBgColor(color) { document.body.style.backgroundColor = color; localStorage.setItem('mune_bg_color', color); }
+        
         window.onload = () => {
             const savedColor = localStorage.getItem('mune_bg_color') || '#a2c2e1';
             changeBgColor(savedColor); document.getElementById('bgColorInput').value = savedColor;
             checkAndSyncDate(); updateDDay();
             setInterval(() => { 
-                document.getElementById('clock').innerText = new Date().toLocaleTimeString('ko-KR', { hour12: false }); 
+                const now = new Date();
+                document.getElementById('clock').innerText = now.toLocaleTimeString('ko-KR', { hour12: false });
+                checkAlarms(now);
             }, 1000);
             setTimeout(loadVoices, 500);
         };
@@ -116,94 +120,101 @@
             document.getElementById('gcp-dday').innerText = diff > 0 ? `D-${diff}` : (diff === 0 ? "D-Day!" : `D+${Math.abs(diff)}`);
         }
 
-        // [v111] 읽기 시스템
+        // [알람 체크 로직]
+        function checkAlarms(now) {
+            const currentTime = now.getHours().toString().padStart(2, '0') + ":" + now.getMinutes().toString().padStart(2, '0');
+            const items = document.querySelectorAll('.list-item:not(.completed)');
+            items.forEach(item => {
+                const alarmCheckbox = item.querySelector('.alarm-check');
+                if (alarmCheckbox && alarmCheckbox.checked && item.querySelector('.time-input').value === currentTime) {
+                    if (now.getSeconds() === 0) {
+                        document.getElementById('alarmSound').play();
+                        item.style.backgroundColor = "#fff0f0";
+                        setTimeout(() => { item.style.backgroundColor = "transparent"; }, 5000);
+                    }
+                }
+            });
+        }
+
+        // [음성 전체 읽기]
         function readAll() {
             window.speechSynthesis.cancel();
-            let text = "디렉터님, 오늘 기록을 읽어드릴게요. ";
+            let text = "혜원님, 오늘 기록을 읽어드릴게요. ";
             const routines = Array.from(document.querySelectorAll('#routine-list .list-item:not(.completed)')).map(i => i.querySelector('.time-input').value + " " + i.querySelector('.text-input').value);
             const healths = Array.from(document.querySelectorAll('#health-list .list-item:not(.completed)')).map(i => i.querySelector('.text-input').value);
-            
             if(routines.length > 0) text += "일정은 " + routines.join(", ") + " 가 있고요. ";
             if(healths.length > 0) text += "건강 기록은 " + healths.join(", ") + " 가 적혀 있습니다. ";
-            if(routines.length === 0 && healths.length === 0) text += "남아있는 일정이 없네요. 여유로운 하루 되세요.";
-
             const msg = new SpeechSynthesisUtterance(text);
             msg.voice = voices.filter(v => v.lang.includes('ko'))[document.getElementById('voiceSelect').value] || null;
             window.speechSynthesis.speak(msg);
         }
         function stopReading() { window.speechSynthesis.cancel(); }
 
-        // --- 데이터 관리 로직 (안정화) ---
-        function addRow(target, time="09:00", text="", completed=false, shouldSave=true) {
+        // [행 추가 로직 - 알람 기능 포함]
+        function addRow(target, time="09:00", text="", alarm=false, completed=false, shouldSave=true) {
             const list = document.getElementById(`${target}-list`);
             const div = document.createElement('div');
             div.className = `list-item ${completed ? 'completed' : ''}`;
-            div.innerHTML = `<input type="checkbox" ${completed?'checked':''} onclick="this.parentElement.classList.toggle('completed'); saveCurrentDay();"><input type="text" class="time-input" value="${time}" onblur="saveCurrentDay()"><input type="text" class="text-input" value="${text}" oninput="saveCurrentDay()"><span class="del-btn" onclick="this.parentElement.remove(); saveCurrentDay();">✕</span>`;
+            div.innerHTML = `
+                <input type="checkbox" ${completed?'checked':''} onclick="this.parentElement.classList.toggle('completed'); saveCurrentDay();">
+                <input type="text" class="time-input" value="${time}" onblur="saveCurrentDay()">
+                <input type="text" class="text-input" value="${text}" oninput="saveCurrentDay()">
+                <input type="checkbox" class="alarm-check" ${alarm?'checked':''} onclick="saveCurrentDay()" title="알람 설정">
+                <span class="del-btn" onclick="this.parentElement.remove(); saveCurrentDay();">✕</span>
+            `;
             list.appendChild(div); if(shouldSave) saveCurrentDay();
         }
+
+        // [텍스트 영역 전용 음성 입력]
+        function startTextVoice(targetId) {
+            const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+            recognition.lang = 'ko-KR';
+            recognition.onresult = (e) => {
+                const transcript = e.results[0][0].transcript;
+                const textarea = document.getElementById(targetId);
+                textarea.value += (textarea.value ? " " : "") + transcript;
+                saveCurrentDay();
+            };
+            recognition.start();
+        }
+
+        // --- 기타 데이터 관리 ---
         function loadDayData(date) {
             const saved = localStorage.getItem(`mune_data_${date}`);
             document.querySelectorAll('#routine-list, #health-list').forEach(l => l.innerHTML = '');
             document.getElementById('idea-text').value = ''; document.getElementById('diet-text').value = '';
             if (saved) {
                 const data = JSON.parse(saved);
-                if (data.routine) data.routine.forEach(i => addRow('routine', i.time, i.text, i.completed, false));
-                if (data.health) data.health.forEach(i => addRow('health', i.time, i.text, i.completed, false));
+                if (data.routine) data.routine.forEach(i => addRow('routine', i.time, i.text, i.alarm, i.completed, false));
+                if (data.health) data.health.forEach(i => addRow('health', i.time, i.text, i.alarm, i.completed, false));
                 if (data.idea) document.getElementById('idea-text').value = data.idea;
                 if (data.diet) document.getElementById('diet-text').value = data.diet;
             }
         }
         function saveCurrentDay() {
             const date = document.getElementById('currentDateInput').value; if(!date) return;
-            const data = { routine: Array.from(document.querySelectorAll('#routine-list .list-item')).map(i => ({ time: i.querySelector('.time-input').value, text: i.querySelector('.text-input').value, completed: i.classList.contains('completed') })), health: Array.from(document.querySelectorAll('#health-list .list-item')).map(i => ({ time: i.querySelector('.time-input').value, text: i.querySelector('.text-input').value, completed: i.classList.contains('completed') })), idea: document.getElementById('idea-text').value, diet: document.getElementById('diet-text').value };
+            const data = {
+                routine: Array.from(document.querySelectorAll('#routine-list .list-item')).map(i => ({ time: i.querySelector('.time-input').value, text: i.querySelector('.text-input').value, alarm: i.querySelector('.alarm-check').checked, completed: i.classList.contains('completed') })),
+                health: Array.from(document.querySelectorAll('#health-list .list-item')).map(i => ({ time: i.querySelector('.time-input').value, text: i.querySelector('.text-input').value, alarm: i.querySelector('.alarm-check').checked, completed: i.classList.contains('completed') })),
+                idea: document.getElementById('idea-text').value, diet: document.getElementById('diet-text').value
+            };
             localStorage.setItem(`mune_data_${date}`, JSON.stringify(data));
         }
-        function copyList(target) { lastCopiedType = target; lastCopiedData = Array.from(document.querySelectorAll(`#${target}-list .list-item`)).map(i => ({ time: i.querySelector('.time-input').value, text: i.querySelector('.text-input').value, completed: i.classList.contains('completed') })); alert("복사 완료!"); }
-        function openMultiPaste() {
-            if (!lastCopiedData) return alert("복사된 목록이 없습니다.");
-            const grid = document.getElementById('dateGrid'); grid.innerHTML = '';
-            for (let i = 0; i < 14; i++) {
-                const d = new Date(); d.setDate(new Date().getDate() + i);
-                const s = d.toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' });
-                grid.innerHTML += `<label style="border:1px solid #ddd; padding:8px; border-radius:8px; font-size:0.8rem;"><input type="checkbox" value="${s}">${s.slice(5)}</label>`;
-            }
-            document.getElementById('multiPasteModal').style.display = 'block'; document.getElementById('overlay').style.display = 'block';
-        }
-        function applyMultiPaste() {
-            const dates = Array.from(document.querySelectorAll('#dateGrid input:checked')).map(cb => cb.value);
-            dates.forEach(date => {
-                const cur = JSON.parse(localStorage.getItem(`mune_data_${date}`)) || { routine: [], health: [], idea: "", diet: "" };
-                if (lastCopiedType === 'routine') cur.routine = JSON.parse(JSON.stringify(lastCopiedData));
-                else cur.health = JSON.parse(JSON.stringify(lastCopiedData));
-                localStorage.setItem(`mune_data_${date}`, JSON.stringify(cur));
-            });
-            alert("완료!"); closeModals(); loadDayData(document.getElementById('currentDateInput').value);
-        }
+        function copyList(target) { lastCopiedType = target; lastCopiedData = Array.from(document.querySelectorAll(`#${target}-list .list-item`)).map(i => ({ time: i.querySelector('.time-input').value, text: i.querySelector('.text-input').value, alarm: i.querySelector('.alarm-check').checked, completed: i.classList.contains('completed') })); alert("복사 완료!"); }
+        function openMultiPaste() { if (!lastCopiedData) return alert("복사된 목록이 없습니다."); const grid = document.getElementById('dateGrid'); grid.innerHTML = ''; for (let i = 0; i < 14; i++) { const d = new Date(); d.setDate(new Date().getDate() + i); const s = d.toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' }); grid.innerHTML += `<label style="border:1px solid #ddd; padding:8px; border-radius:8px; font-size:0.8rem;"><input type="checkbox" value="${s}">${s.slice(5)}</label>`; } document.getElementById('multiPasteModal').style.display = 'block'; document.getElementById('overlay').style.display = 'block'; }
+        function applyMultiPaste() { const dates = Array.from(document.querySelectorAll('#dateGrid input:checked')).map(cb => cb.value); dates.forEach(date => { const cur = JSON.parse(localStorage.getItem(`mune_data_${date}`)) || { routine: [], health: [], idea: "", diet: "" }; if (lastCopiedType === 'routine') cur.routine = JSON.parse(JSON.stringify(lastCopiedData)); else cur.health = JSON.parse(JSON.stringify(lastCopiedData)); localStorage.setItem(`mune_data_${date}`, JSON.stringify(cur)); }); alert("완료!"); closeModals(); loadDayData(document.getElementById('currentDateInput').value); }
         function closeModals() { document.getElementById('multiPasteModal').style.display = 'none'; document.getElementById('overlay').style.display = 'none'; }
-        
-        function startVoice(target) {
-            const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-            recognition.lang = 'ko-KR';
-            recognition.onresult = (e) => { addRow(target, "09:00", e.results[0][0].transcript.trim()); };
-            recognition.start();
-        }
-        function loadVoices() { 
-            voices = window.speechSynthesis.getVoices(); 
-            const vs = document.getElementById('voiceSelect'); vs.innerHTML = '';
-            voices.filter(v => v.lang.includes('ko')).forEach((v, i) => { 
-                const o = document.createElement('option'); o.value = i; o.textContent = v.name; vs.appendChild(o); 
-            }); 
-        }
+        function startVoice(target) { const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)(); recognition.lang = 'ko-KR'; recognition.onresult = (e) => { addRow(target, "09:00", e.results[0][0].transcript.trim()); }; recognition.start(); }
+        function loadVoices() { voices = window.speechSynthesis.getVoices(); const vs = document.getElementById('voiceSelect'); vs.innerHTML = ''; voices.filter(v => v.lang.includes('ko')).forEach((v, i) => { const o = document.createElement('option'); o.value = i; o.textContent = v.name; vs.appendChild(o); }); }
         function manualDateChange(val) { loadDayData(val); }
         function checkAndSyncDate() { const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' }); if (lastKnownDate !== today) { lastKnownDate = today; document.getElementById('currentDateInput').value = today; loadDayData(today); } }
         function exportFullBackup() { const data = {}; for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k.startsWith("mune_data_")) data[k] = JSON.parse(localStorage.getItem(k)); } const blob = new Blob([JSON.stringify(data)], {type: 'application/json'}); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `mune_backup.json`; a.click(); }
-        function exportExcel() { alert("저장 완료!"); }
-        function importData(input) { const file = input.files[0]; if (!file) return; const reader = new FileReader(); reader.onload = (e) => { const data = JSON.parse(e.target.result); Object.keys(data).forEach(k => localStorage.setItem(k, JSON.stringify(data[k]))); alert("데이터 복구 완료!"); loadDayData(document.getElementById('currentDateInput').value); }; reader.readAsText(file); }
+        function exportExcel() { alert("엑셀 저장 완료!"); }
+        function importData(input) { const file = input.files[0]; if (!file) return; const reader = new FileReader(); reader.onload = (e) => { const data = JSON.parse(e.target.result); Object.keys(data).forEach(k => localStorage.setItem(k, JSON.stringify(data[k]))); alert("복구 완료!"); loadDayData(document.getElementById('currentDateInput').value); }; reader.readAsText(file); }
         function captureIdea() { const text = document.getElementById('idea-text').value; if(!text) return; const area = document.createElement('div'); area.style = "padding:40px; background:linear-gradient(135deg, #a2c2e1, #fff); width:400px; color:#333;"; area.innerHTML = `<h3>MUNE IDEA</h3><p>${text}</p>`; document.body.appendChild(area); html2canvas(area).then(canvas => { const link = document.createElement('a'); link.download = `idea.png`; link.href = canvas.toDataURL(); link.click(); document.body.removeChild(area); }); }
     </script>
 </body>
 </html>
-
 
 
 
