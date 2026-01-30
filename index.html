@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>mune planner v128</title>
+    <title>mune planner v129</title>
     <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
     <style>
         :root { --bg-color: #a2c2e1; --card-bg: #ffffff; }
         body { background-color: var(--bg-color); font-family: 'Pretendard', sans-serif; margin: 0; padding: 20px; transition: background 0.3s; }
         
-        /* 날짜창 아이콘 17 완전 제거 */
+        /* 날짜창 아이콘 제거 */
         input[type="date"] { -webkit-appearance: none; appearance: none; background: #f0f0f0 !important; border: 1px solid #ccc; border-radius: 8px; padding: 8px 12px; font-weight: 900; background-image: none !important; }
         input[type="date"]::-webkit-calendar-picker-indicator { display: none !important; }
 
@@ -21,14 +21,14 @@
         
         .main-layout { display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 20px; width: 100%; max-width: 1200px; margin: 0 auto; }
         .card { background: var(--card-bg); border-radius: 30px; padding: 25px; box-shadow: 0 10px 20px rgba(0,0,0,0.05); min-height: 400px; position: relative; }
-        .list-item { display: flex; align-items: center; gap: 5px; padding: 8px 0; border-bottom: 1px solid #eee; }
+        .list-item { display: flex; align-items: center; gap: 5px; padding: 8px 0; border-bottom: 1px solid #eee; transition: all 0.3s ease; }
         .list-item.completed { opacity: 0.4; text-decoration: line-through; }
         
         .alarm-toggle { cursor: pointer; font-size: 1.3rem; width: 35px; height: 35px; display: flex; align-items: center; justify-content: center; border-radius: 50%; transition: 0.2s; background: #f0f0f0; opacity: 0.4; filter: grayscale(1); }
         .alarm-toggle.active { background: #fff9c4; border: 1px solid #FFD700; opacity: 1; filter: grayscale(0); animation: bell-ring 0.5s ease; }
         @keyframes bell-ring { 0%, 100% { transform: rotate(0); } 25% { transform: rotate(20deg); } 75% { transform: rotate(-20deg); } }
 
-        .time-input { border: none; font-weight: bold; width: 55px; background: transparent; font-size: 1rem; text-align: center; outline: none; }
+        .time-input { border: none; font-weight: bold; width: 55px; background: transparent; font-size: 1rem; text-align: center; outline: none; color: #4a90e2; }
         .text-input { border: none; flex-grow: 1; background: transparent; font-size: 1rem; color: #333; outline: none; }
         .voice-btn { background: #eee; border: 1px solid #000; padding: 5px 12px; border-radius: 20px; font-weight: bold; cursor: pointer; font-size: 0.75rem; }
         
@@ -42,7 +42,7 @@
 <body>
 
     <div class="header">
-        <div><h1>mune planner</h1><div class="subtitle" style="font-weight:bold;">Director Master v128</div></div>
+        <div><h1>mune planner</h1><div class="subtitle" style="font-weight:bold;">Director Master v129</div></div>
         <input type="color" id="bgColorInput" oninput="changeBgColor(this.value)">
     </div>
 
@@ -88,13 +88,13 @@
 
     <audio id="alarmSound" src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg" preload="auto" loop></audio>
 
-   <script>
+    <script>
         let lastKnownDate = ""; 
         let voices = []; 
         let lastCopiedData = null; 
         let lastCopiedType = null;
-        let lastCheckedTime = ""; // 알람 중복 실행 방지용 변수
-        let timerWorker = null; // 백그라운드 타이머용 워커
+        let lastCheckedTime = ""; 
+        let timerWorker = null;
 
         function changeBgColor(color) { document.body.style.backgroundColor = color; localStorage.setItem('mune_bg_color', color); }
         
@@ -102,16 +102,11 @@
             const savedColor = localStorage.getItem('mune_bg_color') || '#a2c2e1';
             changeBgColor(savedColor); document.getElementById('bgColorInput').value = savedColor;
             
-            // [수정 1] Web Worker를 사용하여 백그라운드에서도 1초마다 작동하도록 변경
-            const workerScript = `
-                setInterval(() => { postMessage('tick'); }, 1000);
-            `;
+            // Web Worker 설정 (구글 AI 스튜디오 최적화 버전 유지)
+            const workerScript = `setInterval(() => { postMessage('tick'); }, 1000);`;
             const blob = new Blob([workerScript], {type: 'application/javascript'});
             timerWorker = new Worker(URL.createObjectURL(blob));
-            
-            timerWorker.onmessage = function(e) {
-                updateClock();
-            };
+            timerWorker.onmessage = (e) => { updateClock(); };
 
             checkAndSyncDate();
             if (speechSynthesis.onvoiceschanged !== undefined) speechSynthesis.onvoiceschanged = loadVoices;
@@ -123,10 +118,7 @@
         function updateClock() {
             const now = getSeoulTime();
             document.getElementById('clock').innerText = now.toLocaleTimeString('ko-KR', { hour12: false });
-            
-            // [수정 2] 초(seconds)가 0일 때만 체크하는 것이 아니라, 분(minute)이 변경되었을 때 체크
             const currentMinute = now.getHours().toString().padStart(2, '0') + ":" + now.getMinutes().toString().padStart(2, '0');
-            
             if (lastCheckedTime !== currentMinute) {
                 lastCheckedTime = currentMinute;
                 checkAlarms(now); 
@@ -134,41 +126,46 @@
             }
         }
 
+        // [신규] 리스트 정렬 함수
+        function sortList(target) {
+            const list = document.getElementById(`${target}-list`);
+            if (!list) return;
+            const items = Array.from(list.querySelectorAll('.list-item'));
+            items.sort((a, b) => {
+                const tA = a.querySelector('.time-input').value.replace(':', '');
+                const tB = b.querySelector('.time-input').value.replace(':', '');
+                return parseInt(tA) - parseInt(tB);
+            });
+            items.forEach(item => list.appendChild(item));
+        }
+
         function wakeUpSystem() {
             const sound = document.getElementById('alarmSound');
-            sound.volume = 0; // 무음 루프 가동
+            sound.volume = 0; 
             sound.play().then(() => {
                 const btn = document.getElementById('wakeBtn');
                 btn.innerText = "✅ 백그라운드 가동 중"; btn.style.background = "#2ecc71"; btn.style.animation = "none";
-                speakText("혜원님, 이제 모든 기능이 준비되었습니다.");
+                speakText("혜원님, 모든 준비가 끝났습니다. 이제 시간순으로 자동 정렬됩니다.");
             });
         }
 
         function checkAlarms(now) {
-            // updateClock에서 이미 분 단위 체크를 하므로 여기서는 시간만 비교
             const currentTime = now.getHours().toString().padStart(2, '0') + ":" + now.getMinutes().toString().padStart(2, '0');
-            
             document.querySelectorAll('.list-item:not(.completed)').forEach(item => {
                 const alarmBtn = item.querySelector('.alarm-toggle');
                 const taskText = item.querySelector('.text-input').value;
                 const timeValue = item.querySelector('.time-input').value.trim();
-
                 if (alarmBtn && alarmBtn.classList.contains('active') && timeValue === currentTime) {
                     const sound = document.getElementById('alarmSound');
                     sound.volume = 1.0; sound.loop = false; sound.currentTime = 0; 
-                    
-                    // 브라우저 차단 방지를 위한 안전한 재생 시도
                     const playPromise = sound.play();
                     if (playPromise !== undefined) {
                         playPromise.then(_ => {
                             setTimeout(() => { 
                                 speakText(`혜원님, ${taskText} 하실 시간입니다.`);
-                                // 다시 무음 루프로 복구 (다음 알람을 위해)
                                 setTimeout(() => { sound.volume = 0; sound.loop = true; sound.play(); }, 10000);
                             }, 1300);
-                        }).catch(error => {
-                            console.log("알람 재생 실패: 사용자 인터랙션 필요");
-                        });
+                        }).catch(e => console.log("재생 실패"));
                     }
                 }
             });
@@ -181,29 +178,17 @@
             msg.rate = 1.0; window.speechSynthesis.speak(msg);
         }
 
+        // [수정] 시간 포맷팅 후 자동 정렬 실행
         function formatTime(input) { 
             let val = input.value.replace(/[^0-9]/g, ''); 
             if (val.length === 3) input.value = "0" + val.slice(0, 1) + ":" + val.slice(1); 
             else if (val.length === 4) input.value = val.slice(0, 2) + ":" + val.slice(2); 
-        }
-
-        function startVoice(target) {
-            const rec = new (window.webkitSpeechRecognition || window.SpeechRecognition)();
-            rec.lang = 'ko-KR';
-            rec.onresult = (e) => {
-                let transcript = e.results[0][0].transcript.trim();
-                const timeMatch = transcript.match(/(오전|오후)?\s*(\d+)\s*시\s*(?:(\d+)\s*(?:분|00)?)?/);
-                let hh = "09", mm = "00", taskText = transcript;
-                if (timeMatch) {
-                    let hour = parseInt(timeMatch[2]);
-                    let minute = timeMatch[3] ? parseInt(timeMatch[3]) : 0;
-                    if (timeMatch[1] === "오후" && hour < 12) hour += 12;
-                    hh = String(hour).padStart(2, '0'); mm = String(minute).padStart(2, '0');
-                    taskText = transcript.replace(timeMatch[0], "").trim();
-                }
-                addRow(target, `${hh}:${mm}`, taskText);
-            };
-            rec.start();
+            
+            // 어느 리스트인지 찾아서 정렬
+            const listId = input.parentElement.parentElement.id;
+            const target = listId.split('-')[0];
+            sortList(target);
+            saveCurrentDay();
         }
 
         function addRow(target, time="09:00", text="", alarm=false, completed=false, shouldSave=true) {
@@ -213,21 +198,44 @@
             div.innerHTML = `
                 <input type="checkbox" ${completed?'checked':''} onclick="this.parentElement.classList.toggle('completed'); saveCurrentDay();">
                 <div class="alarm-toggle ${alarm ? 'active' : ''}" onclick="this.classList.toggle('active'); saveCurrentDay();">🔔</div>
-                <input type="text" class="time-input" value="${time}" onblur="formatTime(this); saveCurrentDay()">
+                <input type="text" class="time-input" value="${time}" onblur="formatTime(this)">
                 <input type="text" class="text-input" value="${text}" oninput="saveCurrentDay()">
                 <span onclick="this.parentElement.remove(); saveCurrentDay();" style="cursor:pointer; margin-left:auto; color:#ff6666; padding:5px;">✕</span>
             `;
-            list.appendChild(div); if(shouldSave) saveCurrentDay();
+            list.appendChild(div); 
+            
+            // 추가 즉시 정렬
+            sortList(target);
+            if(shouldSave) saveCurrentDay();
         }
 
         function loadVoices() { voices = window.speechSynthesis.getVoices(); const vs = document.getElementById('voiceSelect'); vs.innerHTML = ''; voices.filter(v => v.lang.includes('ko')).forEach((v, i) => { const o = document.createElement('option'); o.value = i; o.textContent = v.name; vs.appendChild(o); }); }
-        function loadDayData(date) { const saved = localStorage.getItem(`mune_data_${date}`); document.querySelectorAll('#routine-list, #health-list').forEach(l => l.innerHTML = ''); if (saved) { const data = JSON.parse(saved); if (data.routine) data.routine.forEach(i => addRow('routine', i.time, i.text, i.alarm, i.completed, false)); if (data.health) data.health.forEach(i => addRow('health', i.time, i.text, i.alarm, i.completed, false)); document.getElementById('idea-text').value = data.idea || ""; document.getElementById('diet-text').value = data.diet || ""; } updateDDay(); }
+        
+        // [수정] 데이터 로드 후 최종 정렬 실행
+        function loadDayData(date) { 
+            const saved = localStorage.getItem(`mune_data_${date}`); 
+            document.querySelectorAll('#routine-list, #health-list').forEach(l => l.innerHTML = ''); 
+            if (saved) { 
+                const data = JSON.parse(saved); 
+                if (data.routine) data.routine.forEach(i => addRow('routine', i.time, i.text, i.alarm, i.completed, false)); 
+                if (data.health) data.health.forEach(i => addRow('health', i.time, i.text, i.alarm, i.completed, false)); 
+                document.getElementById('idea-text').value = data.idea || ""; 
+                document.getElementById('diet-text').value = data.diet || ""; 
+                
+                // 로드 후 각각 정렬
+                sortList('routine');
+                sortList('health');
+            } 
+            updateDDay(); 
+        }
+
         function saveCurrentDay() { const date = document.getElementById('currentDateInput').value; if(!date) return; const data = { routine: Array.from(document.querySelectorAll('#routine-list .list-item')).map(i => ({ time: i.querySelector('.time-input').value, text: i.querySelector('.text-input').value, alarm: i.querySelector('.alarm-toggle').classList.contains('active'), completed: i.classList.contains('completed') })), health: Array.from(document.querySelectorAll('#health-list .list-item')).map(i => ({ time: i.querySelector('.time-input').value, text: i.querySelector('.text-input').value, alarm: i.querySelector('.alarm-toggle').classList.contains('active'), completed: i.classList.contains('completed') })), idea: document.getElementById('idea-text').value, diet: document.getElementById('diet-text').value }; localStorage.setItem(`mune_data_${date}`, JSON.stringify(data)); }
         function updateDDay() { const diff = Math.ceil((new Date('2026-03-10') - new Date(new Date().toLocaleDateString('en-CA', {timeZone:'Asia/Seoul'}))) / (1000*60*60*24)); document.getElementById('gcp-dday').innerText = diff > 0 ? `D-${diff}` : `D+${Math.abs(diff)}`; }
         function copyList(target) { lastCopiedType = target; lastCopiedData = Array.from(document.querySelectorAll(`#${target}-list .list-item`)).map(i => ({ time: i.querySelector('.time-input').value, text: i.querySelector('.text-input').value, alarm: i.querySelector('.alarm-toggle').classList.contains('active'), completed: i.classList.contains('completed') })); alert("복사 완료!"); }
         function openMultiPaste() { if (!lastCopiedData) return alert("복사된 목록이 없습니다."); const grid = document.getElementById('dateGrid'); grid.innerHTML = ''; for (let i = 0; i < 14; i++) { const d = getSeoulTime(); d.setDate(d.getDate() + i); const s = d.toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' }); grid.innerHTML += `<label style="border:1px solid #ddd; padding:8px; border-radius:8px; font-size:0.8rem;"><input type="checkbox" value="${s}">${s.slice(5)}</label>`; } document.getElementById('multiPasteModal').style.display = 'block'; document.getElementById('overlay').style.display = 'block'; }
         function applyMultiPaste() { const dates = Array.from(document.querySelectorAll('#dateGrid input:checked')).map(cb => cb.value); dates.forEach(date => { const cur = JSON.parse(localStorage.getItem(`mune_data_${date}`)) || { routine: [], health: [], idea: "", diet: "" }; if (lastCopiedType === 'routine') cur.routine = JSON.parse(JSON.stringify(lastCopiedData)); else cur.health = JSON.parse(JSON.stringify(lastCopiedData)); localStorage.setItem(`mune_data_${date}`, JSON.stringify(cur)); }); alert("완료!"); closeModals(); loadDayData(document.getElementById('currentDateInput').value); }
         function closeModals() { document.getElementById('multiPasteModal').style.display = 'none'; document.getElementById('overlay').style.display = 'none'; }
+        function startVoice(target) { const rec = new (window.webkitSpeechRecognition || window.SpeechRecognition)(); rec.lang = 'ko-KR'; rec.onresult = (e) => { let transcript = e.results[0][0].transcript.trim(); const timeMatch = transcript.match(/(오전|오후)?\s*(\d+)\s*시\s*(?:(\d+)\s*(?:분|00)?)?/); let hh = "09", mm = "00", taskText = transcript; if (timeMatch) { let hour = parseInt(timeMatch[2]); let minute = timeMatch[3] ? parseInt(timeMatch[3]) : 0; if (timeMatch[1] === "오후" && hour < 12) hour += 12; hh = String(hour).padStart(2, '0'); mm = String(minute).padStart(2, '0'); taskText = transcript.replace(timeMatch[0], "").trim(); } addRow(target, `${hh}:${mm}`, taskText); }; rec.start(); }
         function startTextVoice(targetId) { const rec = new (window.webkitSpeechRecognition || window.SpeechRecognition)(); rec.lang = 'ko-KR'; rec.onresult = (e) => { document.getElementById(targetId).value += " " + e.results[0][0].transcript; saveCurrentDay(); }; rec.start(); }
         function exportFullBackup() { const data = {}; for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k.startsWith("mune_data_")) data[k] = JSON.parse(localStorage.getItem(k)); } const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(data)], {type: 'application/json'})); a.download = `mune_backup.json`; a.click(); }
         function exportExcel() { alert("저장 완료!"); }
@@ -237,5 +245,8 @@
         function manualDateChange(val) { loadDayData(val); }
         function checkAndSyncDate() { const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' }); if (lastKnownDate !== today) { lastKnownDate = today; document.getElementById('currentDateInput').value = today; loadDayData(today); } }
     </script>
+</body>
+</html>
+
 
 
