@@ -3,14 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>mune planner v131</title>
+    <title>mune planner v132</title>
     <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
     <style>
         :root { --bg-color: #a2c2e1; --card-bg: #ffffff; }
         body { background-color: var(--bg-color); font-family: 'Pretendard', sans-serif; margin: 0; padding: 20px; transition: background 0.3s; }
         
-        input[type="date"] { -webkit-appearance: none; appearance: none; background: #f0f0f0 !important; border: 1px solid #ccc; border-radius: 8px; padding: 8px 12px; font-weight: 900; background-image: none !important; }
-        input[type="date"]::-webkit-calendar-picker-indicator { display: none !important; }
+        /* 날짜 내비게이션 스타일 */
+        .date-nav { display: flex; align-items: center; gap: 8px; background: #f0f0f0; padding: 4px 8px; border-radius: 12px; border: 1px solid #ccc; }
+        .nav-btn { background: none; border: none; font-size: 1.2rem; cursor: pointer; padding: 0 5px; font-weight: bold; color: #4a90e2; }
+        .nav-btn:hover { color: #000; }
+        
+        input[type="date"] { border: none; background: transparent; font-weight: 900; font-size: 1rem; cursor: pointer; font-family: inherit; }
+        /* PC에서 달력 아이콘을 클릭하기 쉽게 투명하게 영역 확보 */
+        input[type="date"]::-webkit-calendar-picker-indicator { cursor: pointer; }
 
         .header { width: 100%; max-width: 1400px; margin: 0 auto 10px; display: flex; justify-content: space-between; align-items: flex-end; }
         .header h1 { font-size: 2.2rem; margin: 0; font-weight: 900; }
@@ -21,7 +27,6 @@
         .main-layout { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; width: 100%; max-width: 1400px; margin: 0 auto; }
         .card { background: var(--card-bg); border-radius: 30px; padding: 25px; box-shadow: 0 10px 20px rgba(0,0,0,0.05); min-height: 400px; position: relative; }
         
-        /* 리스트 아이템 레이아웃 최적화 */
         .list-item { display: flex; align-items: center; gap: 8px; padding: 8px 0; border-bottom: 1px solid #eee; }
         .list-item.completed { opacity: 0.4; text-decoration: line-through; }
         
@@ -29,13 +34,8 @@
         .alarm-toggle.active { background: #fff9c4; border: 1px solid #FFD700; opacity: 1; filter: grayscale(0); animation: bell-ring 0.5s ease; }
         
         .time-input { border: none; font-weight: bold; width: 55px; background: transparent; font-size: 1rem; text-align: center; outline: none; color: #4a90e2; flex-shrink: 0; }
-        
-        /* 텍스트 입력창: 버튼을 밀어내지 않도록 min-width 설정 */
         .text-input { border: none; flex-grow: 1; min-width: 0; background: transparent; font-size: 1rem; color: #333; outline: none; }
-        
-        /* 삭제 버튼: 어떤 상황에서도 크기가 줄어들거나 밀려나지 않음 */
         .delete-btn { cursor: pointer; color: #ff6666; padding: 5px 8px; font-weight: bold; font-size: 1.1rem; flex-shrink: 0; user-select: none; }
-        .delete-btn:hover { background: #fff0f0; border-radius: 50%; }
 
         .voice-btn { background: #eee; border: 1px solid #000; padding: 5px 12px; border-radius: 20px; font-weight: bold; cursor: pointer; font-size: 0.75rem; }
         .system-wake-btn { background: #FFD700 !important; border: 2.5px solid #000 !important; font-size: 0.9rem !important; animation: pulse 1.5s infinite; }
@@ -50,7 +50,7 @@
 <body>
 
     <div class="header">
-        <div><h1>mune planner</h1><div class="subtitle" style="font-weight:bold;">Director Master v131</div></div>
+        <div><h1>mune planner</h1><div class="subtitle" style="font-weight:bold;">Director Master v132</div></div>
         <input type="color" id="bgColorInput" oninput="changeBgColor(this.value)">
     </div>
 
@@ -58,7 +58,7 @@
         <button id="wakeBtn" class="util-btn system-wake-btn" onclick="wakeUpSystem()">📢 시스템 깨우기 (필수)</button>
         <button class="util-btn" style="background:#ffcc00; border:none;" onclick="readAll()">📢 전체 읽기</button>
         <button class="util-btn" onclick="stopReading()">🛑 중지</button>
-        <button class="util-btn" onclick="copyList('fixed')">고정루틴복사</button>
+        <button class="util-btn" onclick="copyList('fixed')">고정복사</button>
         <button class="util-btn" onclick="copyList('routine')">일정복사</button>
         <button class="util-btn" onclick="copyList('health')">건강복사</button>
         <button class="util-btn" style="background:#000; color:#fff;" onclick="openMultiPaste()">다중붙여넣기</button>
@@ -67,9 +67,13 @@
         <input type="file" id="fileInput" style="display:none" onchange="importData(this)">
         <select id="voiceSelect" style="border:1px solid #000; padding:5px; border-radius:8px;"></select>
         
-        <div class="time-info" style="margin-left:auto; display:flex; align-items:center; gap:5px; font-weight:900;">
-            <input type="date" id="currentDateInput" onchange="manualDateChange(this.value)">
-            <span id="clock">00:00:00</span>
+        <div class="time-info" style="margin-left:auto; display:flex; align-items:center; gap:10px; font-weight:900;">
+            <div class="date-nav">
+                <button class="nav-btn" onclick="changeDate(-1)">❮</button>
+                <input type="date" id="currentDateInput" onchange="manualDateChange(this.value)">
+                <button class="nav-btn" onclick="changeDate(1)">❯</button>
+            </div>
+            <span id="clock" style="min-width: 80px;">00:00:00</span>
         </div>
     </div>
 
@@ -139,6 +143,25 @@
             }
         }
 
+        // [추가된 기능] 버튼으로 날짜 변경 (어제/내일)
+        function changeDate(offset) {
+            const input = document.getElementById('currentDateInput');
+            const currentDate = new Date(input.value);
+            currentDate.setDate(currentDate.getDate() + offset);
+            const newDateStr = currentDate.toISOString().split('T')[0];
+            input.value = newDateStr;
+            manualDateChange(newDateStr);
+        }
+
+        function manualDateChange(val) { lastKnownDate = val; loadDayData(val); }
+
+        function checkAndSyncDate() { 
+            const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' }); 
+            if (lastKnownDate === "") { 
+                lastKnownDate = today; document.getElementById('currentDateInput').value = today; loadDayData(today); 
+            } 
+        }
+
         function sortList(target) {
             const list = document.getElementById(`${target}-list`);
             if (!list) return;
@@ -162,9 +185,35 @@
                 <input type="text" class="text-input" value="${text}" oninput="saveCurrentDay()">
                 <span class="delete-btn" onclick="this.parentElement.remove(); saveCurrentDay();">✕</span>
             `;
-            list.appendChild(div); 
-            sortList(target);
+            list.appendChild(div); sortList(target);
             if(shouldSave) saveCurrentDay();
+        }
+
+        function loadDayData(date) { 
+            const saved = localStorage.getItem(`mune_data_${date}`); 
+            document.querySelectorAll('#fixed-list, #routine-list, #health-list').forEach(l => l.innerHTML = ''); 
+            if (saved) { 
+                const data = JSON.parse(saved); 
+                if (data.fixed) data.fixed.forEach(i => addRow('fixed', i.time, i.text, i.alarm, i.completed, false)); 
+                if (data.routine) data.routine.forEach(i => addRow('routine', i.time, i.text, i.alarm, i.completed, false)); 
+                if (data.health) data.health.forEach(i => addRow('health', i.time, i.text, i.alarm, i.completed, false)); 
+                document.getElementById('idea-text').value = data.idea || ""; 
+                document.getElementById('diet-text').value = data.diet || ""; 
+                ['fixed', 'routine', 'health'].forEach(t => sortList(t));
+            } else {
+                document.getElementById('idea-text').value = ""; document.getElementById('diet-text').value = "";
+            }
+            updateDDay(); 
+        }
+
+        function saveCurrentDay() { 
+            const date = document.getElementById('currentDateInput').value; if(!date) return; 
+            const getItems = (id) => Array.from(document.querySelectorAll(`#${id}-list .list-item`)).map(i => ({ 
+                time: i.querySelector('.time-input').value, text: i.querySelector('.text-input').value, 
+                alarm: i.querySelector('.alarm-toggle').classList.contains('active'), completed: i.classList.contains('completed') 
+            }));
+            const data = { fixed: getItems('fixed'), routine: getItems('routine'), health: getItems('health'), idea: document.getElementById('idea-text').value, diet: document.getElementById('diet-text').value }; 
+            localStorage.setItem(`mune_data_${date}`, JSON.stringify(data)); 
         }
 
         function wakeUpSystem() {
@@ -172,7 +221,7 @@
             sound.volume = 0; sound.play().then(() => {
                 const btn = document.getElementById('wakeBtn');
                 btn.innerText = "✅ 백그라운드 가동 중"; btn.style.background = "#2ecc71"; btn.style.animation = "none";
-                speakText("혜원님, 음성 시스템이 준비되었습니다.");
+                speakText("혜원 디렉터님, 이제 날짜 이동이 더 간편해졌습니다.");
             });
         }
 
@@ -204,32 +253,6 @@
         }
 
         function loadVoices() { voices = window.speechSynthesis.getVoices(); const vs = document.getElementById('voiceSelect'); vs.innerHTML = ''; voices.filter(v => v.lang.includes('ko')).forEach((v, i) => { const o = document.createElement('option'); o.value = i; o.textContent = v.name; vs.appendChild(o); }); }
-        
-        function loadDayData(date) { 
-            const saved = localStorage.getItem(`mune_data_${date}`); 
-            document.querySelectorAll('#fixed-list, #routine-list, #health-list').forEach(l => l.innerHTML = ''); 
-            if (saved) { 
-                const data = JSON.parse(saved); 
-                if (data.fixed) data.fixed.forEach(i => addRow('fixed', i.time, i.text, i.alarm, i.completed, false)); 
-                if (data.routine) data.routine.forEach(i => addRow('routine', i.time, i.text, i.alarm, i.completed, false)); 
-                if (data.health) data.health.forEach(i => addRow('health', i.time, i.text, i.alarm, i.completed, false)); 
-                document.getElementById('idea-text').value = data.idea || ""; 
-                document.getElementById('diet-text').value = data.diet || ""; 
-                ['fixed', 'routine', 'health'].forEach(t => sortList(t));
-            } 
-            updateDDay(); 
-        }
-
-        function saveCurrentDay() { 
-            const date = document.getElementById('currentDateInput').value; if(!date) return; 
-            const getItems = (id) => Array.from(document.querySelectorAll(`#${id}-list .list-item`)).map(i => ({ 
-                time: i.querySelector('.time-input').value, text: i.querySelector('.text-input').value, 
-                alarm: i.querySelector('.alarm-toggle').classList.contains('active'), completed: i.classList.contains('completed') 
-            }));
-            const data = { fixed: getItems('fixed'), routine: getItems('routine'), health: getItems('health'), idea: document.getElementById('idea-text').value, diet: document.getElementById('diet-text').value }; 
-            localStorage.setItem(`mune_data_${date}`, JSON.stringify(data)); 
-        }
-
         function speakText(text) { if (!window.speechSynthesis) return; window.speechSynthesis.cancel(); const msg = new SpeechSynthesisUtterance(text); msg.voice = voices.filter(v => v.lang.includes('ko'))[document.getElementById('voiceSelect').value] || null; window.speechSynthesis.speak(msg); }
         function updateDDay() { const diff = Math.ceil((new Date('2026-03-10') - new Date(new Date().toLocaleDateString('en-CA', {timeZone:'Asia/Seoul'}))) / (1000*60*60*24)); document.getElementById('gcp-dday').innerText = diff > 0 ? `D-${diff}` : `D+${Math.abs(diff)}`; }
         function copyList(target) { lastCopiedType = target; lastCopiedData = Array.from(document.querySelectorAll(`#${target}-list .list-item`)).map(i => ({ time: i.querySelector('.time-input').value, text: i.querySelector('.text-input').value, alarm: i.querySelector('.alarm-toggle').classList.contains('active'), completed: i.classList.contains('completed') })); alert("복사 완료!"); }
@@ -242,11 +265,10 @@
         function importData(input) { const file = input.files[0]; if (!file) return; const reader = new FileReader(); reader.onload = (e) => { const data = JSON.parse(e.target.result); Object.keys(data).forEach(k => localStorage.setItem(k, JSON.stringify(data[k]))); alert("데이터 복구 완료!"); loadDayData(new Date().toLocaleDateString('en-CA', {timeZone:'Asia/Seoul'})); }; reader.readAsText(file); }
         function readAll() { speakText("오늘의 전체 일정을 읽어드릴게요."); }
         function stopReading() { window.speechSynthesis.cancel(); }
-        function manualDateChange(val) { loadDayData(val); }
-        function checkAndSyncDate() { const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' }); if (lastKnownDate !== today) { lastKnownDate = today; document.getElementById('currentDateInput').value = today; loadDayData(today); } }
     </script>
 </body>
 </html>
+
 
 
 
