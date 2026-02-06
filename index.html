@@ -3,19 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>mune planner v132</title>
+    <title>mune planner v133 - AI Lab Edition</title>
     <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
     <style>
-        :root { --bg-color: #a2c2e1; --card-bg: #ffffff; }
+        :root { --bg-color: #a2c2e1; --card-bg: #ffffff; --ai-purple: #9c27b0; }
         body { background-color: var(--bg-color); font-family: 'Pretendard', sans-serif; margin: 0; padding: 20px; transition: background 0.3s; }
         
-        /* 날짜 내비게이션 스타일 */
         .date-nav { display: flex; align-items: center; gap: 8px; background: #f0f0f0; padding: 4px 8px; border-radius: 12px; border: 1px solid #ccc; }
         .nav-btn { background: none; border: none; font-size: 1.2rem; cursor: pointer; padding: 0 5px; font-weight: bold; color: #4a90e2; }
         .nav-btn:hover { color: #000; }
         
         input[type="date"] { border: none; background: transparent; font-weight: 900; font-size: 1rem; cursor: pointer; font-family: inherit; }
-        /* PC에서 달력 아이콘을 클릭하기 쉽게 투명하게 영역 확보 */
         input[type="date"]::-webkit-calendar-picker-indicator { cursor: pointer; }
 
         .header { width: 100%; max-width: 1400px; margin: 0 auto 10px; display: flex; justify-content: space-between; align-items: flex-end; }
@@ -50,7 +48,7 @@
 <body>
 
     <div class="header">
-        <div><h1>mune planner</h1><div class="subtitle" style="font-weight:bold;">Director Master v132</div></div>
+        <div><h1>mune planner</h1><div class="subtitle" style="font-weight:bold;">Director Master v133</div></div>
         <input type="color" id="bgColorInput" oninput="changeBgColor(this.value)">
     </div>
 
@@ -61,6 +59,7 @@
         <button class="util-btn" onclick="copyList('fixed')">고정복사</button>
         <button class="util-btn" onclick="copyList('routine')">일정복사</button>
         <button class="util-btn" onclick="copyList('health')">건강복사</button>
+        <button class="util-btn" onclick="copyList('aiLab')">AI실험복사</button>
         <button class="util-btn" style="background:#000; color:#fff;" onclick="openMultiPaste()">다중붙여넣기</button>
         <button class="util-btn" style="background:#4a90e2; color:#fff;" onclick="exportFullBackup()">백업</button>
         <button class="util-btn" style="border-style:dashed;" onclick="document.getElementById('fileInput').click()">가져오기</button>
@@ -92,6 +91,11 @@
             <div class="card-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;"><span style="font-size:1.3rem; font-weight:bold;">건강</span><button class="voice-btn" onclick="startVoice('health')">🎤 기록</button></div>
             <div id="health-list"></div>
             <button onclick="addRow('health')" style="margin-top:10px; background:none; border:none; color:#999; cursor:pointer;">+ 항목 추가</button>
+        </div>
+        <div class="card">
+            <div class="card-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;"><span style="font-size:1.3rem; font-weight:bold; color: var(--ai-purple);">AI 실험실</span><button class="voice-btn" onclick="startVoice('aiLab')">🎤 추가</button></div>
+            <div id="aiLab-list"></div>
+            <button onclick="addRow('aiLab')" style="margin-top:10px; background:none; border:none; color:#999; cursor:pointer;">+ 항목 추가</button>
         </div>
         <div class="card">
             <div class="card-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;"><span style="font-size:1.1rem; font-weight:bold;">창작 메모</span><button class="voice-btn" onclick="startTextVoice('idea-text')">🎤 입력</button></div>
@@ -143,7 +147,6 @@
             }
         }
 
-        // [추가된 기능] 버튼으로 날짜 변경 (어제/내일)
         function changeDate(offset) {
             const input = document.getElementById('currentDateInput');
             const currentDate = new Date(input.value);
@@ -191,15 +194,16 @@
 
         function loadDayData(date) { 
             const saved = localStorage.getItem(`mune_data_${date}`); 
-            document.querySelectorAll('#fixed-list, #routine-list, #health-list').forEach(l => l.innerHTML = ''); 
+            document.querySelectorAll('#fixed-list, #routine-list, #health-list, #aiLab-list').forEach(l => l.innerHTML = ''); 
             if (saved) { 
                 const data = JSON.parse(saved); 
                 if (data.fixed) data.fixed.forEach(i => addRow('fixed', i.time, i.text, i.alarm, i.completed, false)); 
                 if (data.routine) data.routine.forEach(i => addRow('routine', i.time, i.text, i.alarm, i.completed, false)); 
                 if (data.health) data.health.forEach(i => addRow('health', i.time, i.text, i.alarm, i.completed, false)); 
+                if (data.aiLab) data.aiLab.forEach(i => addRow('aiLab', i.time, i.text, i.alarm, i.completed, false)); 
                 document.getElementById('idea-text').value = data.idea || ""; 
                 document.getElementById('diet-text').value = data.diet || ""; 
-                ['fixed', 'routine', 'health'].forEach(t => sortList(t));
+                ['fixed', 'routine', 'health', 'aiLab'].forEach(t => sortList(t));
             } else {
                 document.getElementById('idea-text').value = ""; document.getElementById('diet-text').value = "";
             }
@@ -212,7 +216,14 @@
                 time: i.querySelector('.time-input').value, text: i.querySelector('.text-input').value, 
                 alarm: i.querySelector('.alarm-toggle').classList.contains('active'), completed: i.classList.contains('completed') 
             }));
-            const data = { fixed: getItems('fixed'), routine: getItems('routine'), health: getItems('health'), idea: document.getElementById('idea-text').value, diet: document.getElementById('diet-text').value }; 
+            const data = { 
+                fixed: getItems('fixed'), 
+                routine: getItems('routine'), 
+                health: getItems('health'), 
+                aiLab: getItems('aiLab'),
+                idea: document.getElementById('idea-text').value, 
+                diet: document.getElementById('diet-text').value 
+            }; 
             localStorage.setItem(`mune_data_${date}`, JSON.stringify(data)); 
         }
 
@@ -221,7 +232,7 @@
             sound.volume = 0; sound.play().then(() => {
                 const btn = document.getElementById('wakeBtn');
                 btn.innerText = "✅ 백그라운드 가동 중"; btn.style.background = "#2ecc71"; btn.style.animation = "none";
-                speakText("혜원 디렉터님, 이제 날짜 이동이 더 간편해졌습니다.");
+                speakText("혜원 디렉터님, AI 실험실이 가동 준비를 마쳤습니다.");
             });
         }
 
@@ -257,7 +268,7 @@
         function updateDDay() { const diff = Math.ceil((new Date('2026-03-10') - new Date(new Date().toLocaleDateString('en-CA', {timeZone:'Asia/Seoul'}))) / (1000*60*60*24)); document.getElementById('gcp-dday').innerText = diff > 0 ? `D-${diff}` : `D+${Math.abs(diff)}`; }
         function copyList(target) { lastCopiedType = target; lastCopiedData = Array.from(document.querySelectorAll(`#${target}-list .list-item`)).map(i => ({ time: i.querySelector('.time-input').value, text: i.querySelector('.text-input').value, alarm: i.querySelector('.alarm-toggle').classList.contains('active'), completed: i.classList.contains('completed') })); alert("복사 완료!"); }
         function openMultiPaste() { if (!lastCopiedData) return alert("복사된 목록이 없습니다."); const grid = document.getElementById('dateGrid'); grid.innerHTML = ''; for (let i = 0; i < 14; i++) { const d = getSeoulTime(); d.setDate(d.getDate() + i); const s = d.toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' }); grid.innerHTML += `<label style="border:1px solid #ddd; padding:8px; border-radius:8px; font-size:0.8rem;"><input type="checkbox" value="${s}">${s.slice(5)}</label>`; } document.getElementById('multiPasteModal').style.display = 'block'; document.getElementById('overlay').style.display = 'block'; }
-        function applyMultiPaste() { const dates = Array.from(document.querySelectorAll('#dateGrid input:checked')).map(cb => cb.value); dates.forEach(date => { const cur = JSON.parse(localStorage.getItem(`mune_data_${date}`)) || { fixed: [], routine: [], health: [], idea: "", diet: "" }; if (lastCopiedType === 'fixed') cur.fixed = JSON.parse(JSON.stringify(lastCopiedData)); else if (lastCopiedType === 'routine') cur.routine = JSON.parse(JSON.stringify(lastCopiedData)); else cur.health = JSON.parse(JSON.stringify(lastCopiedData)); localStorage.setItem(`mune_data_${date}`, JSON.stringify(cur)); }); alert("완료!"); closeModals(); loadDayData(document.getElementById('currentDateInput').value); }
+        function applyMultiPaste() { const dates = Array.from(document.querySelectorAll('#dateGrid input:checked')).map(cb => cb.value); dates.forEach(date => { const cur = JSON.parse(localStorage.getItem(`mune_data_${date}`)) || { fixed: [], routine: [], health: [], aiLab: [], idea: "", diet: "" }; if (lastCopiedType === 'fixed') cur.fixed = JSON.parse(JSON.stringify(lastCopiedData)); else if (lastCopiedType === 'routine') cur.routine = JSON.parse(JSON.stringify(lastCopiedData)); else if (lastCopiedType === 'health') cur.health = JSON.parse(JSON.stringify(lastCopiedData)); else cur.aiLab = JSON.parse(JSON.stringify(lastCopiedData)); localStorage.setItem(`mune_data_${date}`, JSON.stringify(cur)); }); alert("완료!"); closeModals(); loadDayData(document.getElementById('currentDateInput').value); }
         function closeModals() { document.getElementById('multiPasteModal').style.display = 'none'; document.getElementById('overlay').style.display = 'none'; }
         function startVoice(target) { const rec = new (window.webkitSpeechRecognition || window.SpeechRecognition)(); rec.lang = 'ko-KR'; rec.onresult = (e) => { let transcript = e.results[0][0].transcript.trim(); const timeMatch = transcript.match(/(오전|오후)?\s*(\d+)\s*시\s*(?:(\d+)\s*(?:분|00)?)?/); let hh = "09", mm = "00", taskText = transcript; if (timeMatch) { let hour = parseInt(timeMatch[2]); let minute = timeMatch[3] ? parseInt(timeMatch[3]) : 0; if (timeMatch[1] === "오후" && hour < 12) hour += 12; hh = String(hour).padStart(2, '0'); mm = String(minute).padStart(2, '0'); taskText = transcript.replace(timeMatch[0], "").trim(); } addRow(target, `${hh}:${mm}`, taskText); }; rec.start(); }
         function startTextVoice(targetId) { const rec = new (window.webkitSpeechRecognition || window.SpeechRecognition)(); rec.lang = 'ko-KR'; rec.onresult = (e) => { document.getElementById(targetId).value += " " + e.results[0][0].transcript; saveCurrentDay(); }; rec.start(); }
@@ -268,7 +279,6 @@
     </script>
 </body>
 </html>
-
 
 
 
